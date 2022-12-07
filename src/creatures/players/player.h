@@ -335,25 +335,6 @@ class Player final : public Creature, public Cylinder
 			return secureMode;
 		}
 
-		double_t getFatalChance() const {
-			return fatalChance;
-		}
-		void setFatalChance(double_t value) {
-			fatalChance = value;
-		}
-		double_t getMomentumChance() const {
-			return momentumChance;
-		}
-		void setMomentumChance(double_t value) {
-			momentumChance = value;
-		}
-		double_t getDodgeChance() const {
-			return dodgeChance;
-		}
-		void setDodgeChance(double_t value) {
-			dodgeChance = value;
-		}
-
 		void setParty(Party* newParty) {
 			this->party = newParty;
 		}
