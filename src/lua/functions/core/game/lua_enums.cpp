@@ -288,7 +288,7 @@ void LuaEnums::initFightModeEnums(lua_State* L) {
 }
 
 void LuaEnums::initItemAttributeEnums(lua_State* L) {
-	for (auto value : magic_enum::enum_values<ItemAttribute_t>()) {
+	for (auto value : magic_enum::enum_values<ItemAttrTypes>()) {
 		registerMagicEnum(L, value);
 	}
 }
@@ -400,7 +400,9 @@ void LuaEnums::initForgeEnums(lua_State* L) {
 
 // Webhook default colors
 void LuaEnums::initWebhookEnums(lua_State* L) {
-	for (auto value : magic_enum::enum_values<Webhook_Colors_t>()) {
-		registerMagicEnum(L, value);
-	}
+	// Webhook cannot be registered by magic enum because it is hexadecimal
+	registerEnum(L, WEBHOOK_COLOR_ONLINE);
+	registerEnum(L, WEBHOOK_COLOR_OFFLINE);
+	registerEnum(L, WEBHOOK_COLOR_WARNING);
+	registerEnum(L, WEBHOOK_COLOR_RAID);
 }
