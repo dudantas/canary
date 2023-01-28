@@ -23,6 +23,7 @@
 #define registerMagicEnum(luaState, enumClassType) { \
 	auto number = magic_enum::enum_integer(enumClassType); \
 	auto name = magic_enum::enum_name(enumClassType).data(); \
+	SPDLOG_INFO("NAME {}", name);\
 	registerGlobalVariable(luaState, name, number); \
 } void(0)
 
