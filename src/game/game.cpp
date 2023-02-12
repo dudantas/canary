@@ -3431,10 +3431,10 @@ void Game::playerWrapableItem(uint32_t playerId, const Position& pos, uint8_t st
 	}
 
 	std::string itemName = item->getName();
-	auto unWrapAttribute = item->getCustomAttribute("unWrapId");
+	auto attr = item->getCustomAttribute("unWrapId");
 	uint16_t unWrapId = 0;
-	if (unWrapAttribute != nullptr) {
-		unWrapId = static_cast<uint16_t>(unWrapAttribute->getInteger());
+	if (attr != nullptr) {
+		unWrapId = static_cast<uint16_t>(attr->getInteger());
 	}
 
 	// Prevent to wrap a filled bath tube
@@ -3514,7 +3514,7 @@ void Game::playerWriteItem(uint32_t playerId, uint32_t windowTextId, const std::
 	}
 
 	if (!text.empty()) {
-		if (writeItem->getAttribute<std::string>(ItemAttribute_t::TEXT) != text) {
+		if (writeItem->getString(ItemAttribute_t::TEXT) != text) {
 			writeItem->setAttribute(ItemAttribute_t::TEXT, text);
 			writeItem->setAttribute(ItemAttribute_t::WRITER, player->getName());
 			writeItem->setAttribute(ItemAttribute_t::DATE, getTimeNow());

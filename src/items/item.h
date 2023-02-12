@@ -36,18 +36,25 @@ class ItemProperties {
 public:
 	template<typename T>
 	T getAttribute(ItemAttribute_t type) const {
-		if constexpr (std::is_same_v<T, std::string>) {
-			return getString(type);
-		} else if constexpr (std::is_integral_v<T>) {
-			return std::clamp(
-				static_cast<T>(getInteger(type)),
-				std::numeric_limits<T>::min(),
-				std::numeric_limits<T>::max()
-			);
-		}
-		return T();
+		return std::clamp(static_cast<T>(getInteger(type)), std::numeric_limits<T>::min(), std::numeric_limits<T>::max());
 	}
 
+	const int64_t& getInteger(ItemAttribute_t type) const {
+		static int64_t emptyInt;
+		if (!attributePtr) {
+			return emptyInt;
+		}
+
+		return attributePtr->getAttributeValue(type);
+	}
+	const std::string& getString(ItemAttribute_t type) const {
+		static std::string emptyString;
+		if (!attributePtr) {
+			return emptyString;
+		}
+
+		return attributePtr->getAttributeString(type);
+	}
 	bool hasAttribute(ItemAttribute_t type) const {
 		if (!attributePtr) {
 			return false;
@@ -120,9 +127,9 @@ public:
 	int32_t getDuration() const {
 		ItemDecayState_t decayState = getDecaying();
 		if (decayState == DECAYING_TRUE || decayState == DECAYING_STOPPING) {
-			return std::max<int32_t>(0, getAttribute<int32_t>(ItemAttribute_t::DURATION_TIMESTAMP) - static_cast<int32_t>(OTSYS_TIME()));
+			return std::max<int32_t>(0, getAttribute<int32_t>(ItemAttribute_t::DURATION_TIMESTAMP) -OTSYS_TIME());
 		} else {
-			return getAttribute<int32_t>(ItemAttribute_t::DURATION);
+			return  getAttribute<int32_t>(ItemAttribute_t::DURATION);
 		}
 	}
 
@@ -181,23 +188,6 @@ protected:
 		return attributePtr->getAttributeVector();
 	}
 
-	const int64_t& getInteger(ItemAttribute_t type) const {
-		static int64_t emptyInt;
-		if (!attributePtr) {
-			return emptyInt;
-		}
-
-		return attributePtr->getAttributeValue(type);
-	}
-	const std::string& getString(ItemAttribute_t type) const {
-		static std::string emptyString;
-		if (!attributePtr) {
-			return emptyString;
-		}
-
-		return attributePtr->getAttributeString(type);
-	}
-
 	bool isInitializedAttributePtr() const {
 		if (!attributePtr) {
 			return false;
@@ -206,7 +196,6 @@ protected:
 		return true;
 	}
 
-private:
 	std::unique_ptr<ItemAttribute> attributePtr;
 };
 
@@ -326,7 +315,7 @@ class Item : virtual public Thing, public ItemProperties
 		}
 		uint8_t getShootRange() const {
 			if (hasAttribute(ItemAttribute_t::SHOOTRANGE)) {
-				return getAttribute<uint8_t>(ItemAttribute_t::SHOOTRANGE);
+				return  getAttribute<uint8_t>(ItemAttribute_t::SHOOTRANGE);
 			}
 			return items[id].shootRange;
 		}
