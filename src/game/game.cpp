@@ -1447,7 +1447,17 @@ ReturnValue Game::checkMoveItemToCylinder(Player* player, Cylinder* fromCylinder
 	return RETURNVALUE_NOERROR;
 }
 
-ReturnValue Game::internalMoveItem(Cylinder* fromCylinder, Cylinder* toCylinder, int32_t index, Item* item, uint32_t count, Item** internalMoveItem, uint32_t flags /*= 0*/, Creature* actor /*=nullptr*/, Item* tradeItem /* = nullptr*/) {
+ReturnValue Game::internalMoveHouseItem(Cylinder* fromCylinder, Cylinder* toCylinder, int32_t index, Item* item, uint32_t count, Item** movedItem, uint32_t flags /*= 0*/, Creature* actor /*=nullptr*/, Item* tradeItem /* = nullptr*/) {
+	// Chame a função internalMoveItem com checkLock definido como false
+	return internalMoveItem(fromCylinder, toCylinder, index, item, count, movedItem, flags, actor, tradeItem, false);
+}
+
+ReturnValue Game::internalMoveItem(Cylinder* fromCylinder, Cylinder* toCylinder, int32_t index, Item* item, uint32_t count, Item** internalMoveItem, uint32_t flags /*= 0*/, Creature* actor /*=nullptr*/, Item* tradeItem /* = nullptr*/, bool lockMutex /*= true*/) {
+	// If item is in use in another thread, then return not moveable message
+	if (lockMutex && item->isLockedMutex()) {
+		return RETURNVALUE_NOTMOVEABLE;
+	}
+
 	if (fromCylinder == nullptr) {
 		SPDLOG_ERROR("[{}] fromCylinder is nullptr", __FUNCTION__);
 		return RETURNVALUE_NOTPOSSIBLE;
@@ -1772,6 +1782,10 @@ ReturnValue Game::internalRemoveItem(Item* item, int32_t count /*= -1*/, bool te
 	if (item == nullptr) {
 		SPDLOG_DEBUG("{} - Item is nullptr", __FUNCTION__);
 		return RETURNVALUE_NOTPOSSIBLE;
+	}
+	// If item is in use in another thread, then return error message
+	if (item->isLockedMutex()) {
+		return RETURNVALUE_THISISIMPOSSIBLE;
 	}
 	Cylinder* cylinder = item->getParent();
 	if (cylinder == nullptr) {

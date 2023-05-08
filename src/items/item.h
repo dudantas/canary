@@ -216,6 +216,7 @@ class ItemProperties {
 		}
 
 	private:
+		bool locked = false;
 		std::unique_ptr<ItemAttribute> attributePtr;
 
 		friend class Item;
@@ -651,6 +652,10 @@ class Item : virtual public Thing, public ItemProperties {
 		bool canBeMoved() const;
 		void checkDecayMapItemOnMove();
 
+		void lockMutex();
+		void unlockMutex();
+		bool isLockedMutex() const;
+
 	protected:
 		Cylinder* parent = nullptr;
 
@@ -663,6 +668,9 @@ class Item : virtual public Thing, public ItemProperties {
 		bool isLootTrackeable = false;
 
 	private:
+		bool lockedMutex = false;
+		std::mutex m_itemMutex;
+
 		void setImbuement(uint8_t slot, uint16_t imbuementId, uint32_t duration);
 		// Don't add variables here, use the ItemAttribute class.
 		std::string getWeightDescription(uint32_t weight) const;

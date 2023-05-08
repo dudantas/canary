@@ -2768,3 +2768,17 @@ void Item::updateTileFlags() {
 		tile->updateTileFlags(this);
 	}
 }
+
+void Item::lockMutex() {
+	std::lock_guard<std::mutex> lock(m_itemMutex);
+	lockedMutex = true;
+}
+
+void Item::unlockMutex() {
+	std::lock_guard<std::mutex> lock(m_itemMutex);
+	lockedMutex = false;
+}
+
+bool Item::isLockedMutex() const {
+	return lockedMutex;
+}

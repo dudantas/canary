@@ -197,8 +197,10 @@ class House {
 		}
 
 	private:
-		bool transferToDepot() const;
-		bool transferToDepot(Player* player) const;
+		void transferItemsToPlayer(std::shared_ptr<Player> player) const;
+		void transferToDepot(std::shared_ptr<Player> player);
+
+		std::mutex houseMutex;
 
 		AccessList guestList;
 		AccessList subOwnerList;

@@ -36,14 +36,14 @@ void House::setOwner(uint32_t guid, bool updateDatabase /* = true*/, Player* pla
 		return;
 	}
 
-	isLoaded = true;
-
 	if (owner != 0) {
-		// Send items to depot
-		if (player) {
-			transferToDepot(player);
-		} else {
-			transferToDepot();
+		try {
+			// Send items to depot in another thread
+			std::thread(&House::transferToDepot, this, std::shared_ptr<Player>(player)).detach();
+		} catch (std::exception& e) {
+			SPDLOG_ERROR("[House::transferToDepot] failed to run asynchronous with error code: {}", e.what());
+			player->sendTextMessage(MESSAGE_EVENT_ADVANCE, "An error occurred while tranfering items. Please try again later or report it to the administrador.");
+			return;
 		}
 
 		for (HouseTile* tile : houseTiles) {
@@ -89,6 +89,7 @@ void House::setOwner(uint32_t guid, bool updateDatabase /* = true*/, Player* pla
 	}
 
 	rentWarnings = 0;
+	isLoaded = true;
 
 	if (guid != 0) {
 
@@ -209,30 +210,7 @@ void House::setAccessList(uint32_t listId, const std::string &textlist) {
 	}
 }
 
-bool House::transferToDepot() const {
-	if (townId == 0 || owner == 0) {
-		return false;
-	}
-
-	Player* player = g_game().getPlayerByGUID(owner);
-	if (player) {
-		transferToDepot(player);
-	} else {
-		Player tmpPlayer(nullptr);
-		if (!IOLoginData::loadPlayerById(&tmpPlayer, owner)) {
-			return false;
-		}
-
-		transferToDepot(&tmpPlayer);
-		IOLoginData::savePlayer(&tmpPlayer);
-	}
-	return true;
-}
-
-bool House::transferToDepot(Player* player) const {
-	if (townId == 0 || owner == 0) {
-		return false;
-	}
+void House::transferItemsToPlayer(std::shared_ptr<Player> player) const {
 	ItemList moveItemList;
 	for (HouseTile* tile : houseTiles) {
 		if (const TileItemVector* items = tile->getItemList()) {
@@ -240,6 +218,7 @@ bool House::transferToDepot(Player* player) const {
 				if (item->isWrapable()) {
 					handleWrapableItem(moveItemList, item);
 				} else if (item->isPickupable()) {
+					item->lockMutex();
 					moveItemList.push_back(item);
 				} else {
 					handleContainer(moveItemList, item);
@@ -248,10 +227,40 @@ bool House::transferToDepot(Player* player) const {
 		}
 	}
 
+	uint64_t movedItems = 0;
 	for (Item* item : moveItemList) {
-		g_game().internalMoveItem(item->getParent(), player->getInbox(), INDEX_WHEREEVER, item, item->getItemCount(), nullptr, FLAG_NOLIMIT);
+		auto ret = g_game().internalMoveHouseItem(item->getParent(), player->getInbox(), INDEX_WHEREEVER, item, item->getItemCount(), nullptr, FLAG_NOLIMIT);
+		if (ret == RETURNVALUE_NOERROR) {
+			movedItems++;
+			item->unlockMutex();
+		}
 	}
-	return true;
+	SPDLOG_INFO("[House::transferItemsToPlayer] moved {} items from total items: {}, to player: {}", movedItems, moveItemList.size(), player->getName());
+}
+
+void House::transferToDepot(std::shared_ptr<Player> player) {
+	std::unique_lock<std::mutex> lock(houseMutex);
+	if (townId == 0 || owner == 0) {
+		return;
+	}
+
+	if (player) {
+		transferItemsToPlayer(std::shared_ptr<Player>(player));
+		return;
+	}
+
+	Player* ownerPlayer = g_game().getPlayerByGUID(owner);
+	if (ownerPlayer) {
+		transferItemsToPlayer(std::shared_ptr<Player>(ownerPlayer));
+	} else {
+		Player tmpPlayer(nullptr);
+		if (!IOLoginData::loadPlayerById(std::shared_ptr<Player>(player).get(), owner)) {
+			return;
+		}
+
+		transferItemsToPlayer(std::shared_ptr<Player>(player));
+		IOLoginData::savePlayer(std::shared_ptr<Player>(player).get());
+	}
 }
 
 void House::handleWrapableItem(ItemList &moveItemList, Item* item) const {
@@ -260,12 +269,14 @@ void House::handleWrapableItem(ItemList &moveItemList, Item* item) const {
 	}
 	Item* newItem = g_game().wrapItem(item);
 	moveItemList.push_back(newItem);
+	item->lockMutex();
 }
 
 void House::handleContainer(ItemList &moveItemList, Item* item) const {
 	if (const auto container = item->getContainer()) {
 		for (Item* containerItem : container->getItemList()) {
 			moveItemList.push_back(containerItem);
+			item->lockMutex();
 		}
 	}
 }
