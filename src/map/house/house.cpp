@@ -40,7 +40,7 @@ void House::setOwner(uint32_t guid, bool updateDatabase /* = true*/, Player* pla
 		try {
 			// Send items to depot in another thread
 			std::thread(&House::transferToDepot, this, std::shared_ptr<Player>(player)).detach();
-		} catch (std::exception& e) {
+		} catch (std::exception &e) {
 			SPDLOG_ERROR("[House::transferToDepot] failed to run asynchronous with error code: {}", e.what());
 			player->sendTextMessage(MESSAGE_EVENT_ADVANCE, "An error occurred while tranfering items. Please try again later or report it to the administrador.");
 			return;
