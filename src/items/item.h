@@ -310,8 +310,7 @@ class Item : virtual public Thing, public ItemProperties {
 		std::string getWeightDescription() const;
 
 		// serialization
-		virtual Attr_ReadValue readAttr(AttrTypes_t attr, PropStream &propStream);
-		bool unserializeAttr(PropStream &propStream);
+		bool unserializeAttr(PropStream& propStream, Position position, const std::string &function);
 		virtual bool unserializeItemNode(OTB::Loader &, const OTB::Node &, PropStream &propStream, Position &itemPosition);
 
 		virtual void serializeAttr(PropWriteStream &propWriteStream) const;
