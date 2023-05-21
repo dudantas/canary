@@ -406,7 +406,7 @@ void Item::setSubType(uint16_t n) {
 	}
 }
 
-bool Item::unserializeAttr(PropStream& propStream, Position position, const std::string &function) {
+bool Item::unserializeAttr(PropStream &propStream, Position position, const std::string &function) {
 	try {
 		uint8_t attributeType;
 		while (propStream.read<uint8_t>(attributeType) && attributeType != 0) {
@@ -418,7 +418,7 @@ bool Item::unserializeAttr(PropStream& propStream, Position position, const std:
 				return true;
 			}
 		}
-	} catch (const std::system_error& error) {
+	} catch (const std::system_error &error) {
 		SPDLOG_ERROR("[{}] Failed to unserialize map item with id: {}, error code: {}, reading function [{}]", __FUNCTION__, getID(), error.what(), function);
 		return false;
 	}
