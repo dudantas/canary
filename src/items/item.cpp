@@ -120,8 +120,9 @@ bool Item::hasImbuementCategoryId(uint16_t categoryId) const {
 	for (uint8_t slotid = 0; slotid < getImbuementSlot(); slotid++) {
 		ImbuementInfo imbuementInfo;
 		if (getImbuementInfo(slotid, &imbuementInfo)) {
-			const CategoryImbuement* categoryImbuement = g_imbuements().getCategoryByID(imbuementInfo.imbuement->getCategory());
-			if (categoryImbuement->id == categoryId) {
+
+			if (const CategoryImbuement* categoryImbuement = g_imbuements().getCategoryByID(imbuementInfo.imbuement->getCategory());
+				categoryImbuement->id == categoryId) {
 				return true;
 			}
 		}
@@ -1159,7 +1160,14 @@ Item::getDescriptions(const ItemType &it, const Item* item /*= nullptr*/) {
 					ss << std::showpos;
 				}
 
-				ss << getSkillName(i) << ' ' << it.abilities->skills[i] << '%' << std::noshowpos;
+				ss << getSkillName(i) << ' ';
+				// Show float
+				if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+					ss << it.abilities->skills[i] / 100;
+				} else {
+					ss << it.abilities->skills[i];
+				}
+				ss << '%' << std::noshowpos;
 				skillBoost = true;
 			}
 
@@ -1477,7 +1485,15 @@ Item::getDescriptions(const ItemType &it, const Item* item /*= nullptr*/) {
 					ss << std::showpos;
 				}
 
-				ss << getSkillName(i) << ' ' << it.abilities->skills[i] << '%' << std::noshowpos;
+				ss << getSkillName(i) << ' ';
+				// Show float
+				if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+					ss << it.abilities->skills[i] / 100;
+				} else {
+					ss << it.abilities->skills[i];
+				}
+				ss << '%' << std::noshowpos;
+
 				skillBoost = true;
 			}
 			if (skillBoost) {
@@ -1667,6 +1683,68 @@ std::string Item::parseImbuementDescription(const Item* item) {
 	return s.str();
 }
 
+SoundEffect_t Item::getMovementSound(Cylinder* toCylinder) const {
+	if (!toCylinder) {
+		return SoundEffect_t::ITEM_MOVE_DEFAULT;
+	}
+
+	if (const Container* toContainer = toCylinder->getContainer();
+		toContainer && toContainer->getHoldingPlayer()) {
+		return SoundEffect_t::ITEM_MOVE_BACKPACK;
+	}
+
+	switch (items[id].type) {
+		case ITEM_TYPE_ARMOR: {
+			return SoundEffect_t::ITEM_MOVE_ARMORS;
+		}
+		case ITEM_TYPE_AMULET: {
+			return SoundEffect_t::ITEM_MOVE_NECKLACES;
+		}
+		case ITEM_TYPE_BOOTS: {
+			return SoundEffect_t::ITEM_MOVE_BOOTS;
+		}
+		case ITEM_TYPE_CONTAINER: {
+			return SoundEffect_t::ITEM_MOVE_BACKPACK;
+		}
+		case ITEM_TYPE_HELMET: {
+			return SoundEffect_t::ITEM_MOVE_HELMETS;
+		}
+		case ITEM_TYPE_LEGS: {
+			return SoundEffect_t::ITEM_MOVE_LEGS;
+		}
+		case ITEM_TYPE_RING: {
+			return SoundEffect_t::ITEM_MOVE_RINGS;
+		}
+		case ITEM_TYPE_DISTANCE: {
+			return SoundEffect_t::ITEM_MOVE_DISTANCE;
+		}
+		case ITEM_TYPE_QUIVER: {
+			return SoundEffect_t::ITEM_MOVE_QUIVERS;
+		}
+		case ITEM_TYPE_VALUABLE: {
+			return SoundEffect_t::ITEM_MOVE_STACKABLE;
+		}
+
+		case ITEM_TYPE_WAND:
+		case ITEM_TYPE_SHIELD:
+		case ITEM_TYPE_TOOLS:
+		case ITEM_TYPE_AMMO: {
+			return SoundEffect_t::ITEM_MOVE_WOOD;
+		}
+
+		case ITEM_TYPE_AXE:
+		case ITEM_TYPE_SWORD:
+		case ITEM_TYPE_CLUB: {
+			return SoundEffect_t::ITEM_MOVE_METALIC;
+		}
+
+		default:
+			break;
+	}
+
+	return SoundEffect_t::ITEM_MOVE_DEFAULT;
+}
+
 std::string Item::parseClassificationDescription(const Item* item) {
 	std::ostringstream string;
 	if (item && item->getClassification() >= 1) {
@@ -1784,7 +1862,12 @@ std::string Item::parseShowAttributesDescription(const Item* item, const uint16_
 				if (i != SKILL_CRITICAL_HIT_CHANCE) {
 					itemDescription << std::showpos;
 				}
-				itemDescription << itemType.abilities->skills[i];
+				// Show float
+				if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+					itemDescription << itemType.abilities->skills[i] / 100;
+				} else {
+					itemDescription << itemType.abilities->skills[i];
+				}
 				if (i != SKILL_CRITICAL_HIT_CHANCE) {
 					itemDescription << std::noshowpos;
 				}
@@ -2023,7 +2106,12 @@ std::string Item::getDescription(const ItemType &it, int32_t lookDistance, const
 					if (i != SKILL_CRITICAL_HIT_CHANCE) {
 						s << std::showpos;
 					}
-					s << it.abilities->skills[i];
+					// Show float
+					if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+						s << it.abilities->skills[i] / 100;
+					} else {
+						s << it.abilities->skills[i];
+					}
 					if (i != SKILL_CRITICAL_HIT_CHANCE) {
 						s << std::noshowpos;
 					}
@@ -2209,7 +2297,12 @@ std::string Item::getDescription(const ItemType &it, int32_t lookDistance, const
 					if (i != SKILL_CRITICAL_HIT_CHANCE) {
 						s << std::showpos;
 					}
-					s << it.abilities->skills[i];
+					// Show float
+					if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+						s << it.abilities->skills[i] / 100;
+					} else {
+						s << it.abilities->skills[i];
+					}
 					if (i != SKILL_CRITICAL_HIT_CHANCE) {
 						s << std::noshowpos;
 					}

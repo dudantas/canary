@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
     `lastday` int(10) UNSIGNED NOT NULL DEFAULT '0',
     `type` tinyint(1) UNSIGNED NOT NULL DEFAULT '1',
     `coins` int(12) UNSIGNED NOT NULL DEFAULT '0',
+    `coins_transferable` int(12) UNSIGNED NOT NULL DEFAULT '0',
     `tournament_coins` int(12) UNSIGNED NOT NULL DEFAULT '0',
     `creation` int(11) UNSIGNED NOT NULL DEFAULT '0',
     `recruiter` INT(6) DEFAULT 0,
@@ -216,6 +217,7 @@ CREATE TABLE IF NOT EXISTS `boosted_boss` (
     `boostname` TEXT,
     `date` varchar(250) NOT NULL DEFAULT '',
     `raceid` varchar(250) NOT NULL DEFAULT '',
+    `looktypeEx` int(11) NOT NULL DEFAULT "0",
     `looktype` int(11) NOT NULL DEFAULT "136",
     `lookfeet` int(11) NOT NULL DEFAULT "0",
     `looklegs` int(11) NOT NULL DEFAULT "0",
@@ -608,6 +610,17 @@ CREATE TABLE IF NOT EXISTS `player_items` (
         FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- Table structure `player_wheeldata`
+CREATE TABLE IF NOT EXISTS `player_wheeldata` (
+	`player_id` int(11) NOT NULL,
+	`slot` blob NOT NULL,
+	INDEX `player_id` (`player_id`),
+	CONSTRAINT `player_wheeldata_players_fk`
+		FOREIGN KEY (`player_id`) REFERENCES `players` (`id`)
+		ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
 
 -- Table structure `player_kills`
 CREATE TABLE IF NOT EXISTS `player_kills` (
