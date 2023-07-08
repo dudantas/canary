@@ -38,6 +38,7 @@ Monster::Monster(MonsterType* mType) :
 	float multiplier = g_configManager().getFloat(RATE_MONSTER_HEALTH);
 	health = mType->info.health * multiplier;
 	healthMax = mType->info.healthMax * multiplier;
+	runAwayHealth = mType->info.runAwayHealth * multiplier;
 	baseSpeed = mType->getBaseSpeed();
 	internalLight = mType->info.light;
 	hiddenHealth = mType->info.hiddenHealth;
@@ -2049,7 +2050,7 @@ bool Monster::challengeCreature(Creature* creature) {
 
 	bool result = selectTarget(creature);
 	if (result) {
-		targetChangeCooldown = 8000;
+		targetChangeCooldown = 6000;
 		challengeFocusDuration = targetChangeCooldown;
 		targetChangeTicks = 0;
 	}
