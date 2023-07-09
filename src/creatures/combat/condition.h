@@ -54,6 +54,7 @@ class Condition {
 		static Condition* createCondition(PropStream &propStream);
 
 		virtual bool setParam(ConditionParam_t param, int32_t value);
+		virtual bool setPositionParam(ConditionParam_t param, const Position &pos);
 
 		// serialization
 		bool unserialize(PropStream &propStream);
@@ -64,6 +65,7 @@ class Condition {
 		bool isRemovableOnDeath() const;
 
 	protected:
+		uint8_t drainBodyStage = 0;
 		int64_t endTime;
 		uint32_t subId;
 		int32_t ticks;
@@ -72,6 +74,13 @@ class Condition {
 		bool isBuff;
 
 		virtual bool updateCondition(const Condition* addCondition);
+
+	private:
+		SoundEffect_t tickSound = SoundEffect_t::SILENCE;
+		SoundEffect_t addSound = SoundEffect_t::SILENCE;
+
+		friend class ConditionDamage;
+		friend class ConditionGeneric;
 };
 
 class ConditionGeneric : public Condition {
@@ -111,15 +120,34 @@ class ConditionAttributes final : public ConditionGeneric {
 		bool unserializeProp(ConditionAttr_t attr, PropStream &propStream) final;
 
 	private:
+		// Helpers
+		int32_t getAbsorbByIndex(uint8_t index) const;
+		void setAbsorb(uint8_t index, int32_t value);
+		int32_t getAbsorbPercentByIndex(uint8_t index) const;
+		void setAbsorbPercent(uint8_t index, int32_t value);
+		int32_t getIncraseByIndex(uint8_t index) const;
+		void setIncrease(uint8_t index, int32_t value);
+		int32_t getIncreasePercentById(uint8_t index) const;
+		void setIncreasePercent(uint8_t index, int32_t value);
+
 		int32_t skills[SKILL_LAST + 1] = {};
 		int32_t skillsPercent[SKILL_LAST + 1] = {};
 		int32_t stats[STAT_LAST + 1] = {};
 		int32_t statsPercent[STAT_LAST + 1] = {};
 		int32_t buffsPercent[BUFF_LAST + 1] = {};
 		int32_t buffs[BUFF_LAST + 1] = {};
+
 		int32_t currentSkill = 0;
 		int32_t currentStat = 0;
 		int32_t currentBuff = 0;
+
+		// 12.72 mechanics
+		std::array<int32_t, COMBAT_COUNT> absorbs = {};
+		std::array<int32_t, COMBAT_COUNT> absorbsPercent = {};
+		std::array<int32_t, COMBAT_COUNT> increases = {};
+		std::array<int32_t, COMBAT_COUNT> increasesPercent = {};
+		uint8_t currentAbsorb = 0;
+		uint8_t currentIncrease = 0;
 
 		bool disableDefense = false;
 
@@ -127,8 +155,14 @@ class ConditionAttributes final : public ConditionGeneric {
 		void updateStats(Player* player);
 		void updatePercentSkills(Player* player);
 		void updateSkills(Player* player);
-		void updatePercentBuffs(Creature* creature);
 		void updateBuffs(Creature* creature);
+
+		// 12.72 mechanics
+		void updatePercentAbsorbs(const Creature* creature);
+		void updateAbsorbs(Creature* creature) const;
+		void updatePercentIncreases(const Creature* creature);
+		void updateIncreases(Creature* creature) const;
+		void updatePercentBuffs(Creature* creature);
 };
 
 class ConditionRegeneration final : public ConditionGeneric {
@@ -276,6 +310,46 @@ class ConditionDamage final : public Condition {
 		bool doDamage(Creature* creature, int32_t healthChange);
 
 		bool updateCondition(const Condition* addCondition) override;
+};
+
+class ConditionFeared final : public Condition {
+	public:
+		ConditionFeared() = default;
+		ConditionFeared(ConditionId_t intiId, ConditionType_t initType, int32_t initTicks, bool initBuff, uint32_t initSubId) :
+			Condition(intiId, initType, initTicks, initBuff, initSubId) { }
+
+		bool startCondition(Creature* creature) override;
+		bool executeCondition(Creature* creature, int32_t interval) override;
+		void endCondition(Creature* creature) override;
+		void addCondition(Creature* creature, const Condition* condition) override;
+		uint32_t getIcons() const override;
+
+		ConditionFeared* clone() const override {
+			return new ConditionFeared(*this);
+		}
+
+		bool setPositionParam(ConditionParam_t param, const Position &pos) override;
+
+	private:
+		bool canWalkTo(const Creature* creature, Position pos, Direction moveDirection) const;
+		bool getFleeDirection(Creature* creature);
+		bool getFleePath(Creature* creature, const Position &pos, std::forward_list<Direction> &dirList);
+		bool getRandomDirection(Creature* creature, Position pos);
+		bool isStuck(Creature* creature, Position pos) const;
+
+		std::vector<Direction> m_directionsVector {
+			DIRECTION_NORTH,
+			DIRECTION_NORTHEAST,
+			DIRECTION_EAST,
+			DIRECTION_SOUTHEAST,
+			DIRECTION_SOUTH,
+			DIRECTION_SOUTHWEST,
+			DIRECTION_WEST,
+			DIRECTION_NORTHWEST
+		};
+
+		Position fleeingFromPos; // Caster Position
+		uint8_t fleeIndx = 99;
 };
 
 class ConditionSpeed final : public Condition {

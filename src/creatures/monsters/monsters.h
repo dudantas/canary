@@ -51,6 +51,9 @@ struct spellBlock_t {
 		int32_t maxCombatValue = 0;
 		bool combatSpell = false;
 		bool isMelee = false;
+
+		SoundEffect_t soundImpactEffect = SoundEffect_t::SILENCE;
+		SoundEffect_t soundCastEffect = SoundEffect_t::SILENCE;
 };
 
 class MonsterType {
@@ -80,13 +83,19 @@ class MonsterType {
 
 				uint64_t experience = 0;
 
+				// Hazard system (0-10000), divide by 100 gives us %
+				uint16_t hazardSystemCritChance = 0;
+				bool canDamageBoost = false;
+				bool canSpawnPod = false;
+				bool canDodge = false;
+
 				uint32_t manaCost = 0;
 				uint32_t yellChance = 0;
 				uint32_t yellSpeedTicks = 0;
 				uint32_t staticAttackChance = 95;
 				uint32_t maxSummons = 0;
 				uint32_t changeTargetSpeed = 0;
-				uint32_t conditionImmunities = 0;
+				std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> conditionImmunities = {};
 				uint32_t damageImmunities = 0;
 
 				// Bestiary
@@ -106,6 +115,13 @@ class MonsterType {
 				uint32_t bossStorageCooldown = 0;
 				BosstiaryRarity_t bosstiaryRace;
 				std::string bosstiaryClass;
+
+				float mitigation = 0;
+
+				uint32_t soundChance = 0;
+				uint32_t soundSpeedTicks = 0;
+				std::vector<SoundEffect_t> soundVector;
+				SoundEffect_t deathSound = SoundEffect_t::SILENCE;
 
 				int32_t creatureAppearEvent = -1;
 				int32_t creatureDisappearEvent = -1;
@@ -222,6 +238,9 @@ class MonsterSpell {
 		MagicEffectClasses effect = CONST_ME_NONE;
 		ConditionType_t conditionType = CONDITION_NONE;
 		CombatType_t combatType = COMBAT_UNDEFINEDDAMAGE;
+
+		SoundEffect_t soundImpactEffect = SoundEffect_t::SILENCE;
+		SoundEffect_t soundCastEffect = SoundEffect_t::SILENCE;
 };
 
 class Monsters {

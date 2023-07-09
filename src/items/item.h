@@ -46,7 +46,7 @@ class ItemProperties {
 					std::numeric_limits<T>::max()
 				);
 			}
-			SPDLOG_ERROR("Failed to convert attribute for type {}", type);
+			SPDLOG_ERROR("Failed to convert attribute for type {}", fmt::underlying(type));
 			return {};
 		}
 
@@ -284,6 +284,8 @@ class Item : virtual public Thing, public ItemProperties {
 			return nullptr;
 		}
 
+		SoundEffect_t getMovementSound(Cylinder* toCylinder) const;
+
 		void setIsLootTrackeable(bool value) {
 			isLootTrackeable = value;
 		}
@@ -349,6 +351,38 @@ class Item : virtual public Thing, public ItemProperties {
 			}
 			return items[id].weight;
 		}
+
+		int32_t getCleavePercent() const {
+			return items[id].abilities->cleavePercent;
+		}
+
+		int32_t getPerfectShotDamage() const {
+			return items[id].abilities->perfectShotDamage;
+		}
+		uint8_t getPerfectShotRange() const {
+			return items[id].abilities->perfectShotRange;
+		}
+
+		int32_t getReflectionFlat(CombatType_t combatType) const {
+			return items[id].abilities->reflectFlat[combatTypeToIndex(combatType)];
+		}
+
+		int32_t getReflectionPercent(CombatType_t combatType) const {
+			return items[id].abilities->reflectPercent[combatTypeToIndex(combatType)];
+		}
+
+		int16_t getMagicShieldCapacityPercent() const {
+			return items[id].abilities->magicShieldCapacityPercent;
+		}
+
+		int32_t getMagicShieldCapacityFlat() const {
+			return items[id].abilities->magicShieldCapacityFlat;
+		}
+
+		int32_t getSpecializedMagicLevel(CombatType_t combat) const {
+			return items[id].abilities->specializedMagicLevel[combatTypeToIndex(combat)];
+		}
+
 		int32_t getAttack() const {
 			if (hasAttribute(ItemAttribute_t::ATTACK)) {
 				return getAttribute<int32_t>(ItemAttribute_t::ATTACK);
@@ -446,6 +480,9 @@ class Item : virtual public Thing, public ItemProperties {
 		bool isQuiver() const {
 			return items[id].isQuiver();
 		}
+		bool isSpellBook() const {
+			return items[id].isSpellBook();
+		}
 
 		const std::string &getName() const {
 			if (hasAttribute(ItemAttribute_t::NAME)) {
@@ -464,6 +501,13 @@ class Item : virtual public Thing, public ItemProperties {
 				return getString(ItemAttribute_t::ARTICLE);
 			}
 			return items[id].article;
+		}
+
+		uint8_t getStackSize() const {
+			if (isStackable()) {
+				return items[id].stackSize;
+			}
+			return 1;
 		}
 
 		// get the number of items

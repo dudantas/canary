@@ -40,7 +40,7 @@ struct TextMessage {
 		struct
 		{
 				int32_t value = 0;
-				TextColor_t color;
+				TextColor_t color = TEXTCOLOR_NONE;
 		} primary, secondary;
 };
 
@@ -78,7 +78,7 @@ class ProtocolGame final : public Protocol {
 		ProtocolGame_ptr getThis() {
 			return std::static_pointer_cast<ProtocolGame>(shared_from_this());
 		}
-		void connect(uint32_t playerId, OperatingSystem_t operatingSystem);
+		void connect(const std::string &playerName, OperatingSystem_t operatingSystem);
 		void disconnectClient(const std::string &message) const;
 		void writeToOutputBuffer(const NetworkMessage &msg);
 
@@ -189,6 +189,7 @@ class ProtocolGame final : public Protocol {
 		void parseCloseImbuementWindow(NetworkMessage &msg);
 
 		void parseModalWindowAnswer(NetworkMessage &msg);
+		void parseRewardContainerCollect(NetworkMessage &msg);
 
 		void parseBrowseField(NetworkMessage &msg);
 		void parseSeekInContainer(NetworkMessage &msg);
@@ -272,6 +273,7 @@ class ProtocolGame final : public Protocol {
 
 		void sendDistanceShoot(const Position &from, const Position &to, uint8_t type);
 		void sendMagicEffect(const Position &pos, uint8_t type);
+		void removeMagicEffect(const Position &pos, uint8_t type);
 		void sendRestingStatus(uint8_t protection);
 		void sendCreatureHealth(const Creature* creature);
 		void sendPartyCreatureUpdate(const Creature* target);
@@ -457,7 +459,13 @@ class ProtocolGame final : public Protocol {
 
 		void getForgeInfoMap(const Item* item, std::map<uint16_t, std::map<uint8_t, uint16_t>> &itemsMap) const;
 
+		// Wheel
+		void parseOpenWheel(NetworkMessage &msg);
+		void sendOpenWheelWindow(uint32_t ownerId);
+		void parseSaveWheel(NetworkMessage &msg);
+
 		friend class Player;
+		friend class PlayerWheel;
 
 		phmap::flat_hash_set<uint32_t> knownCreatureSet;
 		Player* player = nullptr;
@@ -483,6 +491,18 @@ class ProtocolGame final : public Protocol {
 		void sendSpecialContainersAvailable();
 		void addBless();
 		void parsePacketDead(uint8_t recvbyte);
+
+		void sendSingleSoundEffect(const Position &pos, SoundEffect_t id, SourceEffect_t source);
+		void sendDoubleSoundEffect(const Position &pos, SoundEffect_t mainSoundId, SourceEffect_t mainSource, SoundEffect_t secondarySoundId, SourceEffect_t secondarySource);
+
+		// Hazard system
+		void reloadHazardSystemIcon(uint16_t reference);
+
+		uint8_t m_playerDeathTime = 0;
+
+		void resetPlayerDeathTime() {
+			m_playerDeathTime = 0;
+		}
 };
 
 #endif // SRC_SERVER_NETWORK_PROTOCOL_PROTOCOLGAME_H_

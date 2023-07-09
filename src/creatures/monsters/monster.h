@@ -78,6 +78,9 @@ class Monster final : public Creature {
 		RaceType_t getRace() const override {
 			return mType->info.race;
 		}
+		float getMitigation() const override {
+			return mType->info.mitigation;
+		}
 		int32_t getArmor() const override {
 			return mType->info.armor;
 		}
@@ -131,7 +134,7 @@ class Monster final : public Creature {
 			this->spawnMonster = newSpawnMonster;
 		}
 
-		uint32_t getReflectValue(CombatType_t combatType) const;
+		int32_t getReflectPercent(CombatType_t combatType, bool useCharges = false) const override;
 		uint32_t getHealingCombatValue(CombatType_t healingType) const;
 
 		bool canWalkOnFieldType(CombatType_t combatType) const;
@@ -151,7 +154,7 @@ class Monster final : public Creature {
 
 		bool challengeCreature(Creature* creature) override;
 
-		bool changeTargetDistance(int32_t distance);
+		bool changeTargetDistance(int32_t distance, uint32_t duration = 12000);
 
 		CreatureIcon_t getIcon() const override {
 			if (challengeMeleeDuration > 0 && mType->info.targetDistance > targetDistance) {
@@ -233,7 +236,7 @@ class Monster final : public Creature {
 
 		bool isTarget(const Creature* creature) const;
 		bool isFleeing() const {
-			return !isSummon() && getHealth() <= mType->info.runAwayHealth && challengeFocusDuration <= 0;
+			return !isSummon() && getHealth() <= runAwayHealth && challengeFocusDuration <= 0 && challengeMeleeDuration <= 0;
 		}
 
 		bool getDistanceStep(const Position &targetPos, Direction &direction, bool flee = false);
@@ -255,6 +258,28 @@ class Monster final : public Creature {
 		uint16_t getRaceId() const {
 			return mType->info.raceid;
 		}
+
+		// Hazard system
+		bool isOnHazardSystem() const {
+			return mType->info.hazardSystemCritChance != 0 || mType->info.canSpawnPod || mType->info.canDodge || mType->info.canDamageBoost;
+		}
+
+		bool getHazardSystemDodge() const {
+			return mType->info.canDodge;
+		}
+
+		bool getHazardSystemSpawnPod() const {
+			return mType->info.canSpawnPod;
+		}
+
+		bool getHazardSystemDamageBoost() const {
+			return mType->info.canDamageBoost;
+		}
+
+		uint16_t getHazardSystemCritChance() const {
+			return mType->info.hazardSystemCritChance;
+		}
+		// Hazard end
 
 		void updateTargetList();
 		void clearTargetList();
@@ -334,6 +359,8 @@ class Monster final : public Creature {
 		uint32_t targetChangeTicks = 0;
 		uint32_t defenseTicks = 0;
 		uint32_t yellTicks = 0;
+		uint32_t soundTicks = 0;
+
 		int32_t minCombatValue = 0;
 		int32_t maxCombatValue = 0;
 		int32_t targetChangeCooldown = 0;
@@ -342,6 +369,7 @@ class Monster final : public Creature {
 		int32_t targetDistance = 1;
 		int32_t challengeMeleeDuration = 0;
 		uint16_t totalPlayersOnScreen = 0;
+		int32_t runAwayHealth = 0;
 
 		Position masterPos;
 
@@ -358,6 +386,7 @@ class Monster final : public Creature {
 
 		void addFriend(Creature* creature);
 		void removeFriend(Creature* creature);
+		void handleHazardSystem(Creature &creature) const;
 		void addTarget(Creature* creature, bool pushFront = false);
 		void removeTarget(Creature* creature);
 
@@ -388,6 +417,7 @@ class Monster final : public Creature {
 		void onThinkTarget(uint32_t interval);
 		void onThinkYell(uint32_t interval);
 		void onThinkDefense(uint32_t interval);
+		void onThinkSound(uint32_t interval);
 
 		bool isFriend(const Creature* creature) const;
 		bool isOpponent(const Creature* creature) const;
@@ -402,7 +432,7 @@ class Monster final : public Creature {
 		uint32_t getDamageImmunities() const override {
 			return mType->info.damageImmunities;
 		}
-		uint32_t getConditionImmunities() const override {
+		const std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> &getConditionImmunities() const override {
 			return mType->info.conditionImmunities;
 		}
 		void getPathSearchParams(const Creature* creature, FindPathParams &fpp) const override;

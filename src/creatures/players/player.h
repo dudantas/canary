@@ -87,6 +87,7 @@ using MuteCountMap = std::map<uint32_t, uint32_t>;
 
 static constexpr int32_t PLAYER_MAX_SPEED = 65535;
 static constexpr int32_t PLAYER_MIN_SPEED = 10;
+static constexpr int32_t PLAYER_SOUND_HEALTH_CHANGE = 10;
 
 class Player final : public Creature, public Cylinder {
 	public:
@@ -334,6 +335,47 @@ class Player final : public Creature, public Cylinder {
 		Party* getParty() const {
 			return party;
 		}
+
+		int32_t getCleavePercent(bool useCharges = false) const;
+
+		void setCleavePercent(int32_t value) {
+			cleavePercent = std::max(0, cleavePercent + value);
+		}
+
+		int32_t getPerfectShotDamage(uint8_t range, bool useCharges = false) const;
+
+		void setPerfectShotDamage(uint8_t range, int32_t damage) {
+			int32_t actualDamage = getPerfectShotDamage(range);
+			bool aboveZero = (actualDamage != 0);
+			actualDamage += damage;
+			if (actualDamage == 0 && aboveZero)
+				perfectShot.erase(range);
+			else
+				perfectShot[range] = actualDamage;
+		}
+
+		int32_t getSpecializedMagicLevel(CombatType_t combat, bool useCharges = false) const;
+
+		void setSpecializedMagicLevel(CombatType_t combat, int32_t value) {
+			specializedMagicLevel[combatTypeToIndex(combat)] = std::max(0, specializedMagicLevel[combatTypeToIndex(combat)] + value);
+		}
+
+		int32_t getMagicShieldCapacityFlat(bool useCharges = false) const;
+
+		void setMagicShieldCapacityFlat(int32_t value) {
+			magicShieldCapacityFlat += value;
+		}
+
+		int32_t getMagicShieldCapacityPercent(bool useCharges = false) const;
+
+		void setMagicShieldCapacityPercent(int32_t value) {
+			magicShieldCapacityPercent += value;
+		}
+
+		int32_t getReflectPercent(CombatType_t combat, bool useCharges = false) const override;
+
+		int32_t getReflectFlat(CombatType_t combat, bool useCharges = false) const override;
+
 		PartyShields_t getPartyShield(const Player* player) const;
 		bool isInviting(const Player* player) const;
 		bool isPartner(const Player* player) const;
@@ -351,7 +393,15 @@ class Player final : public Creature, public Cylinder {
 		}
 
 		bool hasFlag(PlayerFlags_t flag) const {
-			return group->flags[Groups::getFlagNumber(flag)];
+			return group->flags[static_cast<std::size_t>(flag)];
+		}
+
+		void setFlag(PlayerFlags_t flag) const {
+			group->flags[static_cast<std::size_t>(flag)] = true;
+		}
+
+		void removeFlag(PlayerFlags_t flag) const {
+			group->flags[static_cast<std::size_t>(flag)] = false;
 		}
 
 		BedItem* getBedItem() {
@@ -516,6 +566,7 @@ class Player final : public Creature, public Cylinder {
 		void setPremiumDays(int32_t v);
 
 		void setTibiaCoins(int32_t v);
+		void setTransferableTibiaCoins(int32_t v);
 
 		uint16_t getHelpers() const;
 
@@ -657,13 +708,17 @@ class Player final : public Creature, public Cylinder {
 		void setVarStats(stats_t stat, int32_t modifier);
 		int32_t getDefaultStats(stats_t stat) const;
 
-		void addConditionSuppressions(uint32_t conditions);
-		void removeConditionSuppressions(uint32_t conditions);
+		void addConditionSuppressions(const std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> &addCondition);
+		void removeConditionSuppressions();
 
 		Reward* getReward(const uint64_t rewardId, const bool autoCreate);
 		void removeReward(uint64_t rewardId);
 		void getRewardList(std::vector<uint64_t> &rewards) const;
 		RewardChest* getRewardChest();
+
+		ReturnValue recurseMoveItemToContainer(Item* item, Container* container);
+		std::vector<Item*> getRewardsFromContainer(const Container* container) const;
+		ReturnValue rewardChestCollect(const Container* fromCorpse = nullptr, uint32_t maxMoveItems = 0);
 
 		DepotChest* getDepotChest(uint32_t depotId, bool autoCreate);
 		DepotLocker* getDepotLocker(uint32_t depotId);
@@ -928,8 +983,17 @@ class Player final : public Creature, public Cylinder {
 			}
 		}
 		void sendCreatureAppear(const Creature* creature, const Position &pos, bool isLogin) {
+			if (!creature) {
+				return;
+			}
+
+			auto tile = creature->getTile();
+			if (!tile) {
+				return;
+			}
+
 			if (client) {
-				client->sendAddCreature(creature, pos, creature->getTile()->getStackposOfCreature(this, creature), isLogin);
+				client->sendAddCreature(creature, pos, tile->getStackposOfCreature(this, creature), isLogin);
 			}
 		}
 		void sendCreatureMove(const Creature* creature, const Position &newPos, int32_t newStackPos, const Position &oldPos, int32_t oldStackPos, bool teleport) {
@@ -938,8 +1002,17 @@ class Player final : public Creature, public Cylinder {
 			}
 		}
 		void sendCreatureTurn(const Creature* creature) {
+			if (!creature) {
+				return;
+			}
+
+			auto tile = creature->getTile();
+			if (!tile) {
+				return;
+			}
+
 			if (client && canSeeCreature(creature)) {
-				int32_t stackpos = creature->getTile()->getStackposOfCreature(this, creature);
+				int32_t stackpos = tile->getStackposOfCreature(this, creature);
 				if (stackpos != -1) {
 					client->sendCreatureTurn(creature, stackpos);
 				}
@@ -971,7 +1044,7 @@ class Player final : public Creature, public Cylinder {
 			}
 		}
 		void sendCreatureChangeVisible(const Creature* creature, bool visible) {
-			if (!client) {
+			if (!client || !creature) {
 				return;
 			}
 
@@ -985,7 +1058,11 @@ class Player final : public Creature, public Cylinder {
 			} else if (canSeeInvisibility()) {
 				client->sendCreatureOutfit(creature, creature->getCurrentOutfit());
 			} else {
-				int32_t stackpos = creature->getTile()->getStackposOfCreature(this, creature);
+				auto tile = creature->getTile();
+				if (!tile) {
+					return;
+				}
+				int32_t stackpos = tile->getStackposOfCreature(this, creature);
 				if (stackpos == -1) {
 					return;
 				}
@@ -1100,6 +1177,21 @@ class Player final : public Creature, public Cylinder {
 				client->sendLootContainers();
 			}
 		}
+
+		void sendSingleSoundEffect(const Position &pos, SoundEffect_t id, SourceEffect_t source) {
+			if (client) {
+				client->sendSingleSoundEffect(pos, id, source);
+			}
+		}
+
+		void sendDoubleSoundEffect(const Position &pos, SoundEffect_t mainSoundId, SourceEffect_t mainSource, SoundEffect_t secondarySoundId, SourceEffect_t secondarySource) {
+			if (client) {
+				client->sendDoubleSoundEffect(pos, mainSoundId, mainSource, secondarySoundId, secondarySource);
+			}
+		}
+
+		SoundEffect_t getAttackSoundEffect() const;
+		SoundEffect_t getHitSoundEffect() const;
 
 		// event methods
 		void onUpdateTileItem(const Tile* tile, const Position &pos, const Item* oldItem, const ItemType &oldType, const Item* newItem, const ItemType &newType) override;
@@ -1750,6 +1842,8 @@ class Player final : public Creature, public Cylinder {
 			}
 			return false;
 		}
+		void setImmuneFear();
+		bool isImmuneFear() const;
 		uint16_t parseRacebyCharm(charmRune_t charmId, bool set, uint16_t newRaceid) {
 			uint16_t raceid = 0;
 			switch (charmId) {
@@ -1895,6 +1989,8 @@ class Player final : public Creature, public Cylinder {
 
 		uint64_t getItemCustomPrice(uint16_t itemId, bool buyPrice = false) const;
 		uint16_t getFreeBackpackSlots() const;
+
+		bool canAutoWalk(const Position &toPosition, const std::function<void()> &function, uint32_t delay = 500);
 
 		// Interfaces
 		error_t SetAccountInterface(account::Account* account);
@@ -2226,8 +2322,6 @@ class Player final : public Creature, public Cylinder {
 
 		void registerForgeHistoryDescription(ForgeHistory history);
 
-		std::map<uint16_t, Item*> getEquippedItemsWithEnabledAbilitiesBySlot() const;
-
 		void setBossPoints(uint32_t amount) {
 			bossPoints = amount;
 		}
@@ -2290,6 +2384,33 @@ class Player final : public Creature, public Cylinder {
 			}
 		}
 
+		/*******************************************************************************
+		 * Hazard system
+		 ******************************************************************************/
+		// Parser
+		void parseAttackRecvHazardSystem(CombatDamage &damage, const Monster* monster);
+		void parseAttackDealtHazardSystem(CombatDamage &damage, const Monster* monster);
+		// Points increase:
+		void addHazardSystemPoints(int32_t amount);
+		// Points get:
+		uint16_t getHazardSystemPoints() const {
+			int32_t points = 0;
+			points = getStorageValue(STORAGEVALUE_HAZARDCOUNT);
+			if (points <= 0) {
+				return 0;
+			}
+			return static_cast<uint16_t>(std::max<int32_t>(0, std::min<int32_t>(0xFFFF, points)));
+		}
+
+		// Reference counter used on client UI.
+		void reloadHazardSystemIcon();
+		uint16_t getHazardSystemReference() const {
+			return hazardSystemReferenceCounter;
+		}
+		void incrementeHazardSystemReference();
+		void decrementeHazardSystemReference();
+		/*******************************************************************************/
+
 	private:
 		static uint32_t playerFirstID;
 		static uint32_t playerLastID;
@@ -2350,6 +2471,13 @@ class Player final : public Creature, public Cylinder {
 
 		// This get all player inventory items
 		std::vector<Item*> getAllInventoryItems(bool ignoreEquiped = false) const;
+
+		/**
+		 * @brief Get the equipped items of the player.
+		 * @details This function returns a vector containing the items currently equipped by the player
+		 * @return A vector of pointers to the equipped items.
+		 */
+		std::vector<Item*> getEquippedItems() const;
 		// This function is a override function of base class
 		std::map<uint32_t, uint32_t> &getAllItemTypeCount(std::map<uint32_t, uint32_t> &countMap) const override;
 		// Function from player class with correct type sizes (uint16_t)
@@ -2463,8 +2591,8 @@ class Player final : public Creature, public Cylinder {
 		uint32_t capacity = 40000;
 		uint32_t bonusCapacity = 0;
 		uint32_t damageImmunities = 0;
-		uint32_t conditionImmunities = 0;
-		uint32_t conditionSuppressions = 0;
+		std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> conditionImmunities = {};
+		std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> conditionSuppressions = {};
 		uint32_t level = 1;
 		uint32_t magLevel = 0;
 		uint32_t actionTaskEvent = 0;
@@ -2490,7 +2618,9 @@ class Player final : public Creature, public Cylinder {
 		int8_t offlineTrainingSkill = SKILL_NONE;
 		int32_t offlineTrainingTime = 0;
 		int32_t idleTime = 0;
+		int32_t m_deathTime = 0;
 		uint32_t coinBalance = 0;
+		uint32_t coinTransferableBalance = 0;
 		uint16_t expBoostStamina = 0;
 		uint8_t randomMount = 0;
 
@@ -2537,6 +2667,8 @@ class Player final : public Creature, public Cylinder {
 		int32_t UnlockedRunesBit = 0;
 		std::pair<ConditionType_t, uint64_t> cleanseCondition = { CONDITION_NONE, 0 };
 
+		std::pair<ConditionType_t, uint64_t> m_fearCondition = { CONDITION_NONE, 0 };
+
 		uint8_t soul = 0;
 		uint8_t levelPercent = 0;
 		double_t magLevelPercent = 0;
@@ -2571,6 +2703,20 @@ class Player final : public Creature, public Cylinder {
 		bool dead = false;
 		bool imbuementTrackerWindowOpen = false;
 
+		// Hazard system
+		int64_t lastHazardSystemCriticalHit = 0;
+		bool reloadHazardSystemPointsCounter = true;
+		uint16_t hazardSystemReferenceCounter = 0;
+		// Hazard end
+
+		int32_t specializedMagicLevel[COMBAT_COUNT] = { 0 };
+		int32_t cleavePercent = 0;
+		std::map<uint8_t, int32_t> perfectShot;
+		int32_t magicShieldCapacityFlat = 0;
+		int32_t magicShieldCapacityPercent = 0;
+
+		static uint32_t playerAutoID;
+
 		void updateItemsLight(bool internal = false);
 		uint16_t getStepSpeed() const override {
 			return std::max<uint16_t>(PLAYER_MIN_SPEED, std::min<uint16_t>(PLAYER_MAX_SPEED, getSpeed()));
@@ -2601,10 +2747,10 @@ class Player final : public Creature, public Cylinder {
 		uint32_t getDamageImmunities() const override {
 			return damageImmunities;
 		}
-		uint32_t getConditionImmunities() const override {
+		const std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> &getConditionImmunities() const override {
 			return conditionImmunities;
 		}
-		uint32_t getConditionSuppressions() const override {
+		const std::array<ConditionType_t, ConditionType_t::CONDITION_COUNT> &getConditionSuppressions() const override {
 			return conditionSuppressions;
 		}
 		uint16_t getLookCorpse() const override;
