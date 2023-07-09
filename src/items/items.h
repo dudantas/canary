@@ -126,6 +126,9 @@ class ItemType {
 		bool isFluidContainer() const {
 			return group == ITEM_GROUP_FLUID;
 		}
+		bool isSpellBook() const {
+			return spellbook;
+		}
 
 		bool isDoor() const {
 			return (type == ITEM_TYPE_DOOR);
@@ -321,6 +324,7 @@ class ItemType {
 		bool isPodium = false;
 		bool isCorpse = false;
 		bool loaded = false;
+		bool spellbook = false;
 };
 
 class Items {

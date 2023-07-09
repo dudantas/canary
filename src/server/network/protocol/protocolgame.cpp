@@ -23,6 +23,7 @@
 #include "creatures/monsters/monsters.h"
 #include "server/network/message/outputmessage.h"
 #include "creatures/players/player.h"
+#include "creatures/players/wheel/player_wheel.hpp"
 #include "creatures/players/grouping/familiars.h"
 #include "server/network/protocol/protocolgame.h"
 #include "game/scheduling/scheduler.h"
@@ -92,135 +93,6 @@ namespace {
 		msg.addByte(bossRace); // Boss Race
 		msg.add<uint32_t>(isSlotOneInactive == 1 ? 0 : removePrice); // Remove Price
 		msg.addByte(isSlotOneInactive); // Inactive? (Only true if equal to Boosted Boss)
-	}
-
-	/**
-	 * @brief Handles the imbuement damage for a player and adds it to the network message.
-	 * @details This function checks if the player's weapon has any imbuements that provide combat-type damage.
-	 * @details If such imbuements are found, the corresponding damage values and combat types are added to the network message.
-	 * @details If no imbuement damage is found, default values are added to the message.
-	 *
-	 * @param msg The network message to which the imbuement damage should be added.
-	 * @param player Pointer to the player for whom the imbuement damage should be handled.
-	 */
-	void handleImbuementDamage(NetworkMessage &msg, Player* player) {
-		bool imbueDmg = false;
-		Item* weapon = player->getWeapon();
-		if (weapon) {
-			uint8_t slots = Item::items[weapon->getID()].imbuementSlot;
-			if (slots > 0) {
-				for (uint8_t i = 0; i < slots; i++) {
-					ImbuementInfo imbuementInfo;
-					if (!weapon->getImbuementInfo(i, &imbuementInfo)) {
-						continue;
-					}
-
-					if (imbuementInfo.duration > 0) {
-						auto imbuement = *imbuementInfo.imbuement;
-						if (imbuement.combatType != COMBAT_NONE) {
-							msg.addByte(static_cast<uint32_t>(imbuement.elementDamage));
-							msg.addByte(getCipbiaElement(imbuement.combatType));
-							imbueDmg = true;
-							break;
-						}
-					}
-				}
-			}
-		}
-		if (!imbueDmg) {
-			msg.addByte(0);
-			msg.addByte(CIPBIA_ELEMENTAL_UNDEFINED);
-		}
-	}
-
-	/**
-	 * @brief Adds the concoction potions to the NetworkMessage object.
-	 *
-	 * This function iterates through the available concoction potions for the player and adds them to the provided Message object.
-	 * The total item count is also updated in the message.
-	 *
-	 * @param msg The NetworkMessage object where the concoction potions will be added.
-	 * @param player The pointer to the player who has the concoction potions.
-	 *
-	 * @note This function assumes that the message buffer position is already correctly set to add the concoction potions.
-	 */
-	void addConcoctionPotions(NetworkMessage &msg, Player* player) {
-		auto concoctionsBuffer = msg.getBufferPosition();
-		msg.skipBytes(1);
-
-		uint8_t totalItemCount = 0;
-		int64_t timeNow = OTSYS_TIME() / 1000;
-		for (uint16_t itemIdIterator = ITEM_TIBIADROME_POTION_START; itemIdIterator <= ITEM_TIBIADROME_POTION_END; itemIdIterator++) {
-			Condition* condition = player->getCondition(CONDITION_TIBIADROMEPOTIONS, CONDITIONID_DEFAULT, itemIdIterator);
-			if (condition && condition->getEndTime() / 1000 >= timeNow) {
-				msg.add<uint16_t>(itemIdIterator);
-				msg.add<uint16_t>(static_cast<uint16_t>(std::floor(condition->getEndTime() / 1000 - timeNow)));
-				totalItemCount++;
-			}
-		}
-		msg.setBufferPosition(concoctionsBuffer);
-		msg.addByte(totalItemCount);
-	}
-
-	/**
-	 * @brief Calculates the absorb values for different combat types based on player's equipped items.
-	 *
-	 * This function calculates the absorb values for each combat type based on the items equipped by the player.
-	 * The calculated absorb values are stored in the provided array.
-	 *
-	 * @param[in] player The pointer to the player whose equipped items are considered.
-	 */
-	void calculateAbsorbValues(Player* player, NetworkMessage &msg, uint8_t &combats) {
-		alignas(16) uint16_t absorbs[COMBAT_COUNT] = { 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100 };
-
-		for (int32_t slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
-			if (!player->isItemAbilityEnabled(static_cast<Slots_t>(slot))) {
-				continue;
-			}
-
-			Item* item = player->getInventoryItem(static_cast<Slots_t>(slot));
-			if (!item) {
-				continue;
-			}
-
-			const ItemType &itemType = Item::items[item->getID()];
-			if (!itemType.abilities) {
-				continue;
-			}
-
-			for (uint16_t i = 0; i < COMBAT_COUNT; ++i) {
-				absorbs[i] *= (std::floor(100 - itemType.abilities->absorbPercent[i]) / 100.);
-			}
-
-			uint8_t imbuementSlots = itemType.imbuementSlot;
-			if (imbuementSlots > 0) {
-				for (uint8_t i = 0; i < imbuementSlots; ++i) {
-					ImbuementInfo imbuementInfo;
-					if (!item->getImbuementInfo(i, &imbuementInfo)) {
-						continue;
-					}
-
-					if (imbuementInfo.duration > 0) {
-						auto imbuement = *imbuementInfo.imbuement;
-						for (uint16_t i = 0; i < COMBAT_COUNT; ++i) {
-							const int16_t &imbuementAbsorbPercent = imbuement.absorbPercent[i];
-
-							if (imbuementAbsorbPercent != 0) {
-								absorbs[i] *= (std::floor(100 - imbuementAbsorbPercent) / 100.);
-							}
-						}
-					}
-				}
-			}
-		}
-
-		for (size_t i = 0; i < COMBAT_COUNT; ++i) {
-			if (absorbs[i] != 100) {
-				msg.addByte(getCipbiaElement(indexToCombatType(i)));
-				msg.addByte(std::max<int16_t>(-100, std::min<int16_t>(100, (100 - absorbs[i]))));
-				++combats;
-			}
-		}
 	}
 
 } // namespace
@@ -510,7 +382,7 @@ void ProtocolGame::login(const std::string &name, uint32_t accountId, OperatingS
 			return;
 		}
 
-		if (!IOLoginData::loadPlayerById(player, player->getGUID())) {
+		if (!IOLoginData::loadPlayerById(player, player->getGUID(), false)) {
 			g_game().removePlayerUniqueLogin(player);
 			disconnectClient("Your character could not be loaded.");
 			SPDLOG_WARN("Player {} could not be loaded", player->getName());
@@ -909,6 +781,12 @@ void ProtocolGame::parsePacketFromDispatcher(NetworkMessage msg, uint8_t recvbyt
 			break; // otclient extended opcode
 		case 0x60:
 			parseInventoryImbuements(msg);
+			break;
+		case 0x61:
+			parseOpenWheel(msg);
+			break;
+		case 0x62:
+			parseSaveWheel(msg);
 			break;
 		case 0x64:
 			parseAutoWalk(msg);
@@ -2243,7 +2121,7 @@ void ProtocolGame::parseBestiarysendMonsterData(NetworkMessage &msg) {
 		newmsg.add<uint32_t>(mtype->info.experience);
 		newmsg.add<uint16_t>(mtype->getBaseSpeed());
 		newmsg.add<uint16_t>(mtype->info.armor);
-		newmsg.addDouble(0); // 13.00 Mitigation
+		newmsg.addDouble(mtype->info.mitigation);
 	}
 
 	if (currentLevel > 2) {
@@ -3254,10 +3132,6 @@ void ProtocolGame::sendCyclopediaCharacterGeneralStats() {
 	NetworkMessage msg;
 	msg.addByte(0xDA);
 	msg.addByte(CYCLOPEDIA_CHARACTERINFO_GENERALSTATS);
-	// Send no error
-	// 1: No data available at the moment.
-	// 2: You are not allowed to see this character's data.
-	// 3: You are not allowed to inspect this character.
 	msg.addByte(0x00);
 	msg.add<uint64_t>(player->getExperience());
 	msg.add<uint16_t>(player->getLevel());
@@ -3301,19 +3175,9 @@ void ProtocolGame::sendCyclopediaCharacterGeneralStats() {
 		msg.add<uint16_t>(player->getSkillPercent(i) * 100);
 	}
 
-	auto bufferPosition = msg.getBufferPosition();
-	msg.skipBytes(1);
-	uint8_t total = 0;
-	for (size_t i = 0; i < COMBAT_COUNT; i++) {
-		auto specializedMagicLevel = player->getSpecializedMagicLevel(indexToCombatType(i));
-		if (specializedMagicLevel > 0) {
-			++total;
-			msg.addByte(getCipbiaElement(indexToCombatType(i)));
-			msg.add<uint16_t>(specializedMagicLevel);
-		}
-	}
-	msg.setBufferPosition(bufferPosition);
-	msg.addByte(total);
+	// Version 12.70
+	msg.addByte(0x00);
+
 	writeToOutputBuffer(msg);
 }
 
@@ -3327,8 +3191,7 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats() {
 	msg.addByte(CYCLOPEDIA_CHARACTERINFO_COMBATSTATS);
 	msg.addByte(0x00);
 	for (uint8_t i = SKILL_CRITICAL_HIT_CHANCE; i <= SKILL_LAST; ++i) {
-		msg.add<uint16_t>(std::min<int32_t>(player->getSkillLevel(i, true), std::numeric_limits<uint16_t>::max()));
-		// Loyality bonus
+		msg.add<uint16_t>(std::min<int32_t>(player->getSkillLevel(i), std::numeric_limits<uint16_t>::max()));
 		msg.add<uint16_t>(0);
 	}
 
@@ -3336,18 +3199,18 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats() {
 	sendForgeSkillStats(msg);
 
 	// Cleave (12.70)
-	msg.add<uint16_t>(static_cast<uint16_t>(player->getCleavePercent()));
+	msg.add<uint16_t>(0);
 	// Magic shield capacity (12.70)
-	msg.add<uint16_t>(static_cast<uint16_t>(player->getMagicShieldCapacityFlat())); // Direct bonus
-	msg.add<uint16_t>(static_cast<uint16_t>(player->getMagicShieldCapacityPercent())); // Percentage bonus
+	msg.add<uint16_t>(0); // Direct bonus
+	msg.add<uint16_t>(0); // Percentage bonus
 
 	// Perfect shot range (12.70)
-	for (uint8_t range = 1; range <= 5; range++) {
-		msg.add<uint16_t>(static_cast<uint16_t>(player->getPerfectShotDamage(range)));
+	for (uint16_t i = 1; i <= 5; i++) {
+		msg.add<uint16_t>(0x00);
 	}
 
-	// Damage reflection (12.70)
-	msg.add<uint16_t>(static_cast<uint16_t>(player->getReflectFlat(COMBAT_PHYSICALDAMAGE)));
+	// Damage reflection
+	msg.add<uint16_t>(0);
 
 	uint8_t haveBlesses = 0;
 	uint8_t blessings = 8;
@@ -3389,7 +3252,8 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats() {
 				msg.addByte(static_cast<uint32_t>(it.abilities->elementDamage) * 100 / attackValue);
 				msg.addByte(getCipbiaElement(it.abilities->elementType));
 			} else {
-				handleImbuementDamage(msg, player);
+				msg.addByte(0);
+				msg.addByte(CIPBIA_ELEMENTAL_UNDEFINED);
 			}
 		} else {
 			int32_t attackValue = std::max<int32_t>(0, weapon->getAttack());
@@ -3405,7 +3269,8 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats() {
 				msg.addByte(static_cast<uint32_t>(it.abilities->elementDamage) * 100 / attackValue);
 				msg.addByte(getCipbiaElement(it.abilities->elementType));
 			} else {
-				handleImbuementDamage(msg, player);
+				msg.addByte(0);
+				msg.addByte(CIPBIA_ELEMENTAL_UNDEFINED);
 			}
 		}
 	} else {
@@ -3422,19 +3287,38 @@ void ProtocolGame::sendCyclopediaCharacterCombatStats() {
 
 	msg.add<uint16_t>(player->getArmor());
 	msg.add<uint16_t>(player->getDefense());
-	msg.addDouble(0); // Mitigation
+	// Wheel of destiny mitigation
+	if (g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+		msg.addDouble(player->getMitigation());
+	} else {
+		msg.addDouble(0);
+	}
 
-	// Store the "combats" to increase in absorb values function and send to client later
 	uint8_t combats = 0;
 	auto startCombats = msg.getBufferPosition();
 	msg.skipBytes(1);
 
-	// Calculate and parse the combat absorbs values
-	calculateAbsorbValues(player, msg, combats);
-	// Calculate and parse the concoctions potions (12.70)
-	addConcoctionPotions(msg, player);
+	std::array<double_t, COMBAT_COUNT> damageReduction = player->getFinalDamageReduction();
+	static const Cipbia_Elementals_t cipbiaCombats[] = { CIPBIA_ELEMENTAL_PHYSICAL, CIPBIA_ELEMENTAL_ENERGY, CIPBIA_ELEMENTAL_EARTH, CIPBIA_ELEMENTAL_FIRE, CIPBIA_ELEMENTAL_UNDEFINED,
+														 CIPBIA_ELEMENTAL_LIFEDRAIN, CIPBIA_ELEMENTAL_UNDEFINED, CIPBIA_ELEMENTAL_HEALING, CIPBIA_ELEMENTAL_DROWN, CIPBIA_ELEMENTAL_ICE, CIPBIA_ELEMENTAL_HOLY, CIPBIA_ELEMENTAL_DEATH };
+	for (size_t i = 0; i < COMBAT_COUNT; ++i) {
+		// Wheel of destiny resistance
+		damageReduction[i] += static_cast<int16_t>(player->wheel()->getResistance(indexToCombatType(i))) / 100.f;
+		if (g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+			damageReduction[i] += static_cast<int16_t>(player->wheel()->getResistance(indexToCombatType(i))) / 100.f;
+		}
 
-	// Now set the buffer position skiped and send the total combats count
+		auto finalDamage = std::clamp<uint8_t>(static_cast<uint8_t>(damageReduction[i]), 0, 255);
+		if (finalDamage != 0) {
+			msg.addByte(cipbiaCombats[i]);
+			msg.addByte(finalDamage);
+			++combats;
+		}
+	}
+
+	// Concoctions potions (12.70)
+	msg.addByte(0x00);
+
 	msg.setBufferPosition(startCombats);
 	msg.addByte(combats);
 
@@ -3504,64 +3388,11 @@ void ProtocolGame::sendCyclopediaCharacterItemSummary() {
 	msg.addByte(0xDA);
 	msg.addByte(CYCLOPEDIA_CHARACTERINFO_ITEMSUMMARY);
 	msg.addByte(0x00);
-
-	// Inventory
-	auto startInventoryItems = msg.getBufferPosition();
-	uint16_t inventoryItems = 0;
-	msg.skipBytes(2);
-
-	for (std::underlying_type<Slots_t>::type slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_AMMO; slot++) {
-		Item* inventoryItem = player->getInventoryItem(static_cast<Slots_t>(slot));
-		if (inventoryItem) {
-			++inventoryItems;
-			msg.add<uint16_t>(inventoryItem->getID());
-			msg.add<uint32_t>(inventoryItem->getItemCount());
-		}
-		// TODO show / count items in backpack
-	}
-
-	// Stash
-	// TODO Why does it display items in the store inbox?
-	auto startStashItems = msg.getBufferPosition();
-	StashItemList stashItems = player->getStashItems();
-	msg.skipBytes(2);
-
-	for (auto item : stashItems) {
-		msg.add<uint16_t>(item.first);
-		msg.add<uint32_t>(item.second);
-	}
-
-	// DepotItems
-	auto startDepotItems = msg.getBufferPosition();
-	uint16_t depotItems = 0;
-	msg.skipBytes(2);
-
-	// StoreInboxItems
-	auto startStoreInboxItems = msg.getBufferPosition();
-	uint16_t storeInboxItems = 0;
-	msg.skipBytes(2);
-
-	// InboxItems
-	auto startInboxItems = msg.getBufferPosition();
-	uint16_t inboxItems = 0;
-	msg.skipBytes(2);
-
-	// execute
-	msg.setBufferPosition(startInventoryItems);
-	msg.add<uint16_t>(inventoryItems);
-
-	msg.setBufferPosition(startDepotItems);
-	msg.add<uint16_t>(depotItems);
-
-	msg.setBufferPosition(startStashItems);
-	msg.add<uint16_t>(stashItems.size());
-
-	msg.setBufferPosition(startInboxItems);
-	msg.add<uint16_t>(inboxItems);
-
-	msg.setBufferPosition(startStoreInboxItems);
-	msg.add<uint16_t>(storeInboxItems);
-
+	msg.add<uint16_t>(0);
+	msg.add<uint16_t>(0);
+	msg.add<uint16_t>(0);
+	msg.add<uint16_t>(0);
+	msg.add<uint16_t>(0);
 	writeToOutputBuffer(msg);
 }
 
@@ -3674,9 +3505,7 @@ void ProtocolGame::sendCyclopediaCharacterStoreSummary() {
 	msg.addByte(0xDA);
 	msg.addByte(CYCLOPEDIA_CHARACTERINFO_STORESUMMARY);
 	msg.addByte(0x00);
-	// Remaining Store Xp Boost Time
-	msg.add<uint32_t>(player->getExpBoostStamina());
-	// RemainingDailyRewardXpBoostTime
+	msg.add<uint32_t>(0);
 	msg.add<uint32_t>(0);
 	msg.addByte(0x00);
 	msg.addByte(0x00);
@@ -3753,19 +3582,8 @@ void ProtocolGame::sendCyclopediaCharacterBadges() {
 	msg.addByte(0xDA);
 	msg.addByte(CYCLOPEDIA_CHARACTERINFO_BADGES);
 	msg.addByte(0x00);
-	// ShowAccountInformation
-	msg.addByte(0x01);
-	// if ShowAccountInformation show IsOnline, IsPremium, character title, badges
-	// IsOnline
-	const auto loggedPlayer = g_game().getPlayerUniqueLogin(player->getName());
-	msg.addByte(loggedPlayer ? 0x01 : 0x00);
-	// IsPremium (GOD has always 'Premium')
-	msg.addByte(player->isPremium() ? 0x01 : 0x00);
-	// character title
-	msg.addString("");
-	// badges
+	// enable badges
 	msg.addByte(0x00);
-	// Todo badges loop
 	writeToOutputBuffer(msg);
 }
 
@@ -3813,19 +3631,44 @@ void ProtocolGame::sendBasicData() {
 	msg.addByte(player->getVocation()->getClientId());
 
 	// Prey window
-	if (player->getVocation()->getId() == 0) {
+	if (player->getVocation()->getId() == 0 && player->getGroup()->id < account::GROUP_TYPE_GAMEMASTER) {
 		msg.addByte(0);
 	} else {
 		msg.addByte(1); // has reached Main (allow player to open Prey window)
 	}
 
+	// Filter only valid ids
 	std::list<uint16_t> spellsList = g_spells().getSpellsByVocation(player->getVocationId());
-	msg.add<uint16_t>(spellsList.size());
+	std::vector<InstantSpell*> validSpells;
 	for (uint16_t sid : spellsList) {
-		if (oldProtocol) {
-			msg.addByte(sid);
+		auto spell = g_spells().getInstantSpellById(sid);
+		if (spell && spell->getId() > 0) {
+			validSpells.push_back(spell);
+		}
+	}
+
+	// Send total size of spells
+	msg.add<uint16_t>(validSpells.size());
+	// Send each spell valid ids
+	for (auto spell : validSpells) {
+		// Only send valid spells to old client
+		if (oldProtocol && spell->getId() <= 255) {
+			msg.addByte((uint8_t)spell->getId());
+			continue;
+		}
+
+		if (spell->isLearnable() && !player->hasLearnedInstantSpell(spell->getName())) {
+			msg.add<uint16_t>(0);
+		} else if (spell && spell->isLearnable() && player->hasLearnedInstantSpell(spell->getName())) {
+			// Ignore spell if not have wheel grade (or send if have)
+			auto grade = player->wheel()->getSpellUpgrade(spell->getName());
+			if (static_cast<uint8_t>(grade) == 0) {
+				msg.add<uint16_t>(0);
+			} else {
+				msg.add<uint16_t>(spell->getId());
+			}
 		} else {
-			msg.add<uint16_t>(sid);
+			msg.add<uint16_t>(spell->getId());
 		}
 	}
 
@@ -5103,7 +4946,11 @@ void ProtocolGame::sendMarketDetail(uint16_t itemId, uint8_t tier) {
 			if (i != SKILL_CRITICAL_HIT_CHANCE) {
 				ss << std::showpos;
 			}
-			ss << it.abilities->skills[i] << '%';
+			if (i == SKILL_LIFE_LEECH_AMOUNT || i == SKILL_MANA_LEECH_AMOUNT) {
+				ss << (it.abilities->skills[i] / 100.) << '%';
+			} else {
+				ss << it.abilities->skills[i] << '%';
+			}
 
 			if (i != SKILL_CRITICAL_HIT_CHANCE) {
 				ss << std::noshowpos;
@@ -5117,20 +4964,7 @@ void ProtocolGame::sendMarketDetail(uint16_t itemId, uint8_t tier) {
 				separator = true;
 			}
 
-			ss << fmt::format(" magic level {:+}", it.abilities->stats[STAT_MAGICPOINTS]);
-		}
-
-		// Version 12.72 (Specialized magic level modifier)
-		for (uint8_t i = 1; i <= 11; i++) {
-			if (it.abilities->specializedMagicLevel[i]) {
-				if (separator) {
-					ss << ", ";
-				} else {
-					separator = true;
-				}
-				std::string combatName = getCombatName(indexToCombatType(i));
-				ss << std::showpos << combatName << std::noshowpos << "magic level +" << it.abilities->specializedMagicLevel[i];
-			}
+			ss << fmt::format("magic level {:+}", it.abilities->stats[STAT_MAGICPOINTS]);
 		}
 
 		if (it.abilities->speed != 0) {
@@ -5188,51 +5022,14 @@ void ProtocolGame::sendMarketDetail(uint16_t itemId, uint8_t tier) {
 	}
 
 	if (!oldProtocol) {
-		// Version 12.70 new skills
-		if (it.abilities) {
-			std::ostringstream string;
-			if (it.abilities->magicShieldCapacityFlat > 0) {
-				string.clear();
-				string << std::showpos << it.abilities->magicShieldCapacityFlat << std::noshowpos << " and " << it.abilities->magicShieldCapacityPercent << "%";
-				msg.addString(string.str());
-			} else {
-				msg.add<uint16_t>(0x00);
-			}
-
-			if (it.abilities->cleavePercent > 0) {
-				string.clear();
-				string << it.abilities->cleavePercent << "%";
-				msg.addString(string.str());
-			} else {
-				msg.add<uint16_t>(0x00);
-			}
-
-			if (it.abilities->reflectFlat[COMBAT_PHYSICALDAMAGE] > 0) {
-				string.clear();
-				string << it.abilities->reflectFlat[COMBAT_PHYSICALDAMAGE];
-				msg.addString(string.str());
-			} else {
-				msg.add<uint16_t>(0x00);
-			}
-
-			if (it.abilities->perfectShotDamage > 0) {
-				string.clear();
-				string << std::showpos << it.abilities->perfectShotDamage << std::noshowpos << " at " << it.abilities->perfectShotRange << "%";
-				msg.addString(string.str());
-			} else {
-				msg.add<uint16_t>(0x00);
-			}
-		} else {
-			// Send empty skills
-			// Cleave modifier
-			msg.add<uint16_t>(0x00);
-			// Magic shield capacity
-			msg.add<uint16_t>(0x00);
-			// Damage reflection modifie
-			msg.add<uint16_t>(0x00);
-			// Perfect shot modifier
-			msg.add<uint16_t>(0x00);
-		}
+		// Magic shield capacity modifier (12.70)
+		msg.add<uint16_t>(0x00);
+		// Cleave modifier (12.70)
+		msg.add<uint16_t>(0x00);
+		// Damage reflection modifier (12.70)
+		msg.add<uint16_t>(0x00);
+		// Perfect shot modifier (12.70)
+		msg.add<uint16_t>(0x00);
 
 		// Upgrade and tier detail modifier
 		if (it.upgradeClassification > 0 && tier > 0) {
@@ -5590,6 +5387,14 @@ void ProtocolGame::sendMagicEffect(const Position &pos, uint8_t type) {
 		msg.addByte(type);
 		msg.addByte(MAGIC_EFFECTS_END_LOOP);
 	}
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::removeMagicEffect(const Position &pos, uint8_t type) {
+	NetworkMessage msg;
+	msg.addByte(0x84);
+	msg.addPosition(pos);
+	msg.addByte(type);
 	writeToOutputBuffer(msg);
 }
 
@@ -5976,6 +5781,10 @@ void ProtocolGame::sendAddCreature(const Creature* creature, const Position &pos
 
 	sendLootContainers();
 	sendBasicData();
+	// Wheel of destiny cooldown
+	if (!oldProtocol && g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+		player->wheel()->sendGiftOfLifeCooldown();
+	}
 
 	player->sendClientCheck();
 	player->sendGameNews();
@@ -6978,7 +6787,7 @@ void ProtocolGame::AddPlayerSkills(NetworkMessage &msg) {
 	}
 
 	for (uint8_t i = SKILL_CRITICAL_HIT_CHANCE; i <= SKILL_LAST; ++i) {
-		msg.add<uint16_t>(std::min<int32_t>(player->getSkillLevel(i, true), std::numeric_limits<uint16_t>::max()));
+		msg.add<uint16_t>(std::min<int32_t>(player->getSkillLevel(i), std::numeric_limits<uint16_t>::max()));
 		msg.add<uint16_t>(player->getBaseSkill(i));
 	}
 
@@ -8249,4 +8058,31 @@ void ProtocolGame::reloadHazardSystemIcon(uint16_t reference) {
 		msg.add<uint16_t>(player->getHazardSystemPoints());
 	}
 	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::parseOpenWheel(NetworkMessage &msg) {
+	if (oldProtocol || !g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+		return;
+	}
+
+	auto ownerId = msg.get<uint32_t>();
+	addGameTask(&Game::playerOpenWheel, player->getID(), ownerId);
+}
+
+void ProtocolGame::sendOpenWheelWindow(uint32_t ownerId) {
+	if (!player || oldProtocol || !g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+		return;
+	}
+
+	NetworkMessage msg;
+	player->wheel()->sendOpenWheelWindow(msg, ownerId);
+	writeToOutputBuffer(msg);
+}
+
+void ProtocolGame::parseSaveWheel(NetworkMessage &msg) {
+	if (oldProtocol || !g_configManager().getBoolean(TOGGLE_WHEELSYSTEM)) {
+		return;
+	}
+
+	addGameTask(&Game::playerSaveWheel, player->getID(), msg);
 }
