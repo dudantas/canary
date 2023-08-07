@@ -12,4 +12,5 @@ function tutorPosition.onSay(player, words, param)
 	return false
 end
 
+tutorPosition:groupType("normal")
 tutorPosition:register()

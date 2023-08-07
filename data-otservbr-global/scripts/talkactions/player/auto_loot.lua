@@ -23,5 +23,6 @@ function autoLoot.onSay(player, words, param)
 	return true
 end
 
+autoLoot:groupType("normal")
 autoLoot:separator(" ")
 autoLoot:register()

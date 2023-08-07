@@ -15,5 +15,6 @@ function emoteSpell.onSay(player, words, param)
 	return true
 end
 
+emoteSpell:groupType("normal")
 emoteSpell:separator(" ")
 emoteSpell:register()

@@ -20,5 +20,6 @@ function sellHouse.onSay(player, words, param)
 	return false
 end
 
+sellHouse:groupType("normal")
 sellHouse:separator(" ")
 sellHouse:register()
