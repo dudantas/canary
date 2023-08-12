@@ -213,6 +213,7 @@ int main(int argc, char* argv[]) {
 
 	g_dispatcher().start();
 	g_scheduler().start();
+	g_webhook().init();
 	g_webhook().start();
 
 	g_dispatcher().addTask(createTask(std::bind(mainLoader, argc, argv, &serviceManager)));
@@ -383,8 +384,6 @@ void mainLoader(int, char*[], ServiceManager* services) {
 
 	g_game().start(services);
 	g_game().setGameState(GAME_STATE_NORMAL);
-
-	g_webhook().init();
 
 	g_webhook().sendMessage("Server is now online", "Server has successfully started.", WEBHOOK_COLOR_ONLINE);
 
