@@ -314,7 +314,6 @@ void Party::updateMantraHolder() {
 		if (!member) {
 			continue;
 		}
-
 		bool playerHasGuidincePresence = member->getPlayerVocationEnum() == VOCATION_MONK_CIP && member->wheel().getInstant(WheelInstant_t::GUIDING_PRESENCE);
 		if (!playerHasGuidincePresence) {
 			continue;
