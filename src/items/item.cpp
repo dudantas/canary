@@ -308,9 +308,10 @@ namespace {
 			itemDescription << "perfect shot " << std::showpos << itemType.abilities->perfectShotDamage << std::noshowpos << " at range " << unsigned(itemType.abilities->perfectShotRange);
 		}
 
-		if (itemType.abilities->reflectFlat[0] != 0) {
+		int16_t reflectPhysical = itemType.abilities->reflectFlat[combatTypeToIndex(COMBAT_PHYSICALDAMAGE)];
+		if (reflectPhysical != 0) {
 			appendAttributeSeparator(begin, itemDescription);
-			itemDescription << "damage reflection " << std::showpos << itemType.abilities->reflectFlat[0] << std::noshowpos;
+			itemDescription << "damage reflection " << std::showpos << reflectPhysical << std::noshowpos;
 		}
 	}
 
