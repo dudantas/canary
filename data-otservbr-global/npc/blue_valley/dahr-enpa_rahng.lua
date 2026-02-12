@@ -39,16 +39,6 @@ keywordHandler:addKeyword({ "blue valley", "Blue Valley" }, StdModule.say, {
 	text = "The valley is rich in vegetation. Bursting of fragrance and colour in the spring and summer, it truly is a sight to behold. You need an eye and a nose for things like this, of course.",
 })
 
-keywordHandler:addKeyword({ "blue valley", "Blue Valley" }, StdModule.say, {
-	npcHandler = npcHandler,
-	text = "The valley is rich in vegetation. Bursting of fragrance and colour in the spring and summer, it truly is a sight to behold. You need an eye and a nose for things like this, of course.",
-})
-
-keywordHandler:addKeyword({ "blue valley", "Blue Valley" }, StdModule.say, {
-	npcHandler = npcHandler,
-	text = "The valley is rich in vegetation. Bursting of fragrance and colour in the spring and summer, it truly is a sight to behold. You need an eye and a nose for things like this, of course.",
-})
-
 npcType.onThink = function(npc, interval)
 	npcHandler:onThink(npc, interval)
 end

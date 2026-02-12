@@ -43,7 +43,7 @@ end
 
 -- Callbacks
 function onGetFormulaValuesInner(player, skill, attack, factor)
-	local min, max = calculateSweepingDamage(player, skill, attack, SPELL_BASE_POWER_CENTER, "Center")
+	local min, max = calculateSweepingDamage(player, skill, attack, SPELL_BASE_POWER_CENTER)
 	sweepingTakedownCache[player:getId()] = { min = min, max = max }
 	return min, max
 end
@@ -68,8 +68,11 @@ combatOuter:setCallback(CALLBACK_PARAM_SKILLVALUE, "onGetFormulaValuesOuter")
 local spell = Spell("instant")
 
 function spell.onCastSpell(creature, var)
+	local playerId = creature:getId()
 	combatInner:execute(creature, var)
 	combatOuter:execute(creature, var)
+	-- Clean up cache to prevent memory leak
+	sweepingTakedownCache[playerId] = nil
 	return true
 end
 
