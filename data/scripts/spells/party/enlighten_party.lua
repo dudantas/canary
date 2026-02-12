@@ -25,8 +25,14 @@ function spell.onCastSpell(creature, var)
 	end
 
 	local membersList = party:getMembers()
+	if not membersList or type(membersList) ~= "table" then
+		creature:sendCancelMessage("No party members in range.")
+		position:sendMagicEffect(CONST_ME_POFF)
+		return false
+	end
+	
 	membersList[#membersList + 1] = party:getLeader()
-	if membersList ~= nil and type(membersList) == "table" and #membersList > 1 then
+	if #membersList < 1 then
 		creature:sendCancelMessage("No party members in range.")
 		position:sendMagicEffect(CONST_ME_POFF)
 		return false

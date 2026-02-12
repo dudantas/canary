@@ -455,8 +455,8 @@ local function creatureSayCallback(npc, creature, type, message)
 
 	if MsgContains(message, "pilgrimage") then
 		local shrinesCount = player:getStorageValue(Storage.Quest.U14_15.TheWayOfTheMonk.ShrinesCount)
-		-- Normalize shrinesCount: if nil or negative, set to 0
-		if shrinesCount < 0 then
+		-- Normalize shrinesCount: if nil, not a number, or negative, set to 0
+		if not shrinesCount or type(shrinesCount) ~= "number" or shrinesCount < 0 then
 			shrinesCount = 0
 		end
 		

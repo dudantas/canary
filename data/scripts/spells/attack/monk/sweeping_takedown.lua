@@ -15,25 +15,27 @@ local function calculateSweepingDamage(player, skill, attack, basePower)
 	local levelBasedDmg = player:calculateFlatDamageHealing()
 
 	local skillBonus = 0
+	local delta = skill - 110
+	local deltaSq = delta * delta
 
 	if skill > 250 then
-		skillBonus = ((skill - 110) ^ 2) * 0.043
+		skillBonus = deltaSq * 0.043
 	elseif skill > 230 then
-		skillBonus = ((skill - 110) ^ 2) * 0.039
+		skillBonus = deltaSq * 0.039
 	elseif skill > 210 then
-		skillBonus = ((skill - 110) ^ 2) * 0.037
+		skillBonus = deltaSq * 0.037
 	elseif skill > 190 then
-		skillBonus = ((skill - 110) ^ 2) * 0.035
+		skillBonus = deltaSq * 0.035
 	elseif skill > 160 then
-		skillBonus = ((skill - 110) ^ 2) * 0.033
+		skillBonus = deltaSq * 0.033
 	elseif skill > 140 then
-		skillBonus = ((skill - 110) ^ 2) * 0.029
+		skillBonus = deltaSq * 0.029
 	elseif skill > 130 then
-		skillBonus = ((skill - 110) ^ 2) * 0.026
+		skillBonus = deltaSq * 0.026
 	elseif skill > 120 then
-		skillBonus = ((skill - 110) ^ 2) * 0.024
+		skillBonus = deltaSq * 0.024
 	elseif skill > 110 then
-		skillBonus = ((skill - 110) ^ 2) * 0.022
+		skillBonus = deltaSq * 0.022
 	end
 
 	local baseDamage = skill * attack * basePower / 1000 + levelBasedDmg + skillBonus
