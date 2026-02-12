@@ -435,7 +435,6 @@ SoulWarQuest = {
 		"Knight's Apparition",
 		"Paladin's Apparition",
 		"Sorcerer's Apparition",
-		"Monk's Apparition",
 	},
 
 	burningTransformations = {
