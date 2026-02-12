@@ -446,7 +446,7 @@ npcType.onCloseChannel = function(npc, creature)
 	npcHandler:onCloseChannel(npc, creature)
 end
 
-local function creatureSayCallback(npc, creature, type, message)
+local function creatureSayCallback(npc, creature, msgType, message)
 	local player = Player(creature)
 
 	if not npcHandler:checkInteraction(npc, creature) then
@@ -481,7 +481,6 @@ local function creatureSayCallback(npc, creature, type, message)
 end
 
 local function greetCallback(npc, creature)
-	local player = Player(creature)
 	npcHandler:setMessage(MESSAGE_GREET, "I welcome you, monk. Now that you have been brought here, tell me what you seek in this most sacred place. I can also teach you {spells} or {promote} you.")
 	return true
 end
