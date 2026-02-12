@@ -66,9 +66,6 @@ namespace {
 		}
 
 		for (uint8_t i = SKILL_FIRST; i <= SKILL_FISHING; i++) {
-			if (i == SKILL_MANA_LEECH_CHANCE || i == SKILL_LIFE_LEECH_CHANCE) {
-				continue;
-			}
 
 			if (!it.abilities->skills[i]) {
 				continue;
@@ -2080,7 +2077,7 @@ Item::getDescriptions(const ItemType &it, const std::shared_ptr<Item> &item /*= 
 		}
 
 		if (it.elementalBond != COMBAT_NONE) {
-			descriptions.push_back({ "Elemental Bond", toPascalCase(getCombatName(it.elementalBond)) });
+			descriptions.emplace_back("Elemental Bond", toPascalCase(getCombatName(it.elementalBond)));
 		}
 	} else {
 		if (!it.description.empty()) {

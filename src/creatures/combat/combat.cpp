@@ -646,8 +646,12 @@ void Combat::applyMantraAbsorb(const std::shared_ptr<Player> &player, CombatType
 }
 
 void Combat::harmonyHeal(const std::shared_ptr<Player> &casterPlayer, const std::shared_ptr<Player> &targetPlayer, const uint8_t charges) {
+	if (!casterPlayer || !targetPlayer) {
+		return;
+	}
 	CombatDamage damage;
 	CombatParams combatParams;
+	combatParams.origin = ORIGIN_HARMONY;
 
 	// Each charge increases healing by 5%
 	double multiplier = 1.0 + 0.05 * charges;
