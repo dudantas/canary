@@ -632,7 +632,9 @@ void Combat::applyMantraAbsorb(const std::shared_ptr<Player> &player, CombatType
 
 	// Apply mantra absorption only for elemental damage types
 	if (combatType == COMBAT_FIREDAMAGE || combatType == COMBAT_ICEDAMAGE || combatType == COMBAT_ENERGYDAMAGE || combatType == COMBAT_EARTHDAMAGE) {
-		value -= mantra;
+		if (value < 0) {
+			value += std::min(mantra, -value);
+		}
 	}
 }
 

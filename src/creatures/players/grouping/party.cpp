@@ -218,12 +218,10 @@ bool Party::leaveParty(const std::shared_ptr<Player> &player, bool forceRemove /
 	broadcastPartyMessage(MESSAGE_PARTY_MANAGEMENT, ss.str());
 
 	const auto &mantraHolder = m_mantraHolder.lock();
+	player->resetBuff(BUFF_MANTRA);
+	player->sendSkills();
 	if (mantraHolder == player) {
 		updateMantraHolder();
-		m_mantraHolder.reset();
-	} else {
-		player->resetBuff(BUFF_MANTRA);
-		player->sendSkills();
 	}
 
 	if (missingLeader || empty()) {

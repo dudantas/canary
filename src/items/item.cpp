@@ -1076,6 +1076,16 @@ Attr_ReadValue Item::readAttr(AttrTypes_t attr, PropStream &propStream) {
 			break;
 		}
 
+		case ATTR_MANTRA: {
+			int32_t mantra;
+			if (!propStream.read<int32_t>(mantra)) {
+				return ATTR_READ_ERROR;
+			}
+
+			setAttribute(ItemAttribute_t::MANTRA, mantra);
+			break;
+		}
+
 		case ATTR_IMBUEMENT_SLOT: {
 			int32_t imbuementSlot;
 			if (!propStream.read<int32_t>(imbuementSlot)) {

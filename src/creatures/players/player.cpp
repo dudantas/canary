@@ -4857,8 +4857,10 @@ bool Player::processStashItem(const std::shared_ptr<Item> &item, uint16_t itemCo
 		}
 
 		if (inventoryItem == item) {
-			if (g_moveEvents().onPlayerDeEquip(selfPlayer, item, static_cast<Slots_t>(i)) == 0) {
-				return false;
+			if (!item->isStackable() || itemCount >= item->getItemCount()) {
+				if (g_moveEvents().onPlayerDeEquip(selfPlayer, item, static_cast<Slots_t>(i)) == 0) {
+					return false;
+				}
 			}
 		}
 	}
@@ -8026,7 +8028,10 @@ namespace {
 		}
 
 		const Position &playerPosition = player.getPosition();
-		for (const auto &member : party->getMembers()) {
+		for (const auto &member : party->getPlayers()) {
+			if (!member || member.get() == &player) {
+				continue;
+			}
 			const Position &memberPosition = member->getPosition();
 			if (Position::getDistanceZ(playerPosition, memberPosition) > 0) {
 				continue;
@@ -8804,7 +8809,7 @@ ReturnValue Player::addItemFromStash(uint16_t itemId, uint32_t itemCount) {
 						break;
 					}
 
-					const auto &newItem = Item::createItemBatch(itemId, toCreate);
+					const auto &newItem = Item::createItemBatch(itemId, toCreate, 0);
 					if (!newItem) {
 						g_logger().warn("[addItemFromStash] Failed to create new stackable itemId: {} for player {}", itemId, getName());
 						break;
@@ -8839,7 +8844,7 @@ ReturnValue Player::addItemFromStash(uint16_t itemId, uint32_t itemCount) {
 			}
 
 			if (targetContainer->capacity() > targetContainer->size()) {
-				const auto &newItem = Item::createItemBatch(itemId, 1);
+				const auto &newItem = Item::createItemBatch(itemId, 1, 0);
 				if (!newItem) {
 					g_logger().warn("[addItemFromStash] Failed to create new itemId: {} for player {}", itemId, getName());
 					break;
@@ -8964,7 +8969,7 @@ ReturnValue Player::addItemBatchToPaginedContainer(
 	while (remaining > 0) {
 		uint32_t toStack = std::min(remaining, maxStackSize);
 
-		std::shared_ptr<Item> newItem = Item::createItemBatch(itemId, toStack);
+		std::shared_ptr<Item> newItem = Item::createItemBatch(itemId, toStack, 0);
 		if (!newItem) {
 			return RETURNVALUE_NOTPOSSIBLE;
 		}
@@ -9024,7 +9029,7 @@ ReturnValue Player::addItemBatch(
 			return RETURNVALUE_NOTPOSSIBLE;
 		}
 
-		const auto &newItem = Item::createItemBatch(itemId, totalCount, true);
+		const auto &newItem = Item::createItemBatch(itemId, totalCount, 0, true);
 		if (!newItem) {
 			g_logger().error("[Player::addItemBatch] Failed to create non-movable item {} for player {}", itemId, getName());
 			return RETURNVALUE_NOTPOSSIBLE;
@@ -12255,8 +12260,9 @@ double_t Player::getHarmonyBonus() {
 
 	harmonyBaseBonus += m_wheelPlayer.getStage(WheelStage_t::ASCETIC);
 
-	const auto harmonyBuff = getBuff(BUFF_HARMONYBONUS) - 100;
-	if (harmonyBuff != 0) {
+	const auto rawHarmonyBuff = getBuff(BUFF_HARMONYBONUS);
+	if (rawHarmonyBuff != 0) {
+		const auto harmonyBuff = rawHarmonyBuff - 100;
 		harmonyBaseBonus += harmonyBuff;
 	}
 

@@ -9,6 +9,13 @@
 
 #pragma once
 
+#ifndef USE_PRECOMPILED_HEADERS
+	#include <array>
+	#include <cstdint>
+	#include <string>
+	#include <vector>
+#endif
+
 enum class WheelSlots_t : uint8_t {
 	SLOT_GREEN_200 = 1,
 	SLOT_GREEN_TOP_150 = 2,
