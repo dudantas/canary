@@ -1,0 +1,2 @@
+add_subdirectory(combat)
+add_subdirectory(players)
