@@ -12210,6 +12210,11 @@ void Player::buildHarmony(uint8_t charges /* = 1 */) {
 		return;
 	}
 
+	charges = std::min<uint8_t>(charges, 5 - harmony);
+	if (charges == 0) {
+		return;
+	}
+
 	healFromHarmony(charges);
 
 	harmony += charges;
@@ -12297,8 +12302,8 @@ void Player::healFromHarmony(uint8_t charges /* = 1 */) {
 				continue;
 			}
 
-			// Select member with equal or lower health as target over self
-			if (partyMember->getHealth() >= targetPlayer->getHealth()) {
+			// Select the most injured visible party member over self
+			if (partyMember->getHealth() < targetPlayer->getHealth()) {
 				targetPlayer = partyMember;
 			}
 		}

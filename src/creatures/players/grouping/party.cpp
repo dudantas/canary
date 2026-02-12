@@ -307,24 +307,22 @@ void Party::applyGuidingPresence(const std::vector<std::shared_ptr<Player>> &mem
 }
 
 void Party::updateMantraHolder() {
-	const auto &mantraHolder = m_mantraHolder.lock();
-
 	auto players = getPlayers();
+	m_mantraHolder.reset();
+
 	for (const auto &member : players) {
 		if (!member) {
 			continue;
 		}
+
 		bool playerHasGuidincePresence = member->getPlayerVocationEnum() == VOCATION_MONK_CIP && member->wheel().getInstant(WheelInstant_t::GUIDING_PRESENCE);
-		if (mantraHolder && playerHasGuidincePresence) {
-			m_mantraHolder = member->getMantra() > mantraHolder->getMantra() ? member : mantraHolder;
+		if (!playerHasGuidincePresence) {
+			continue;
 		}
-		// If there's no current holder, assign this qualifying member
-		else if (!mantraHolder && playerHasGuidincePresence) {
+
+		const auto currentHolder = m_mantraHolder.lock();
+		if (!currentHolder || member->getMantra() > currentHolder->getMantra()) {
 			m_mantraHolder = member;
-		}
-		// If the current holder no longer qualifies, clear the holder
-		else if (mantraHolder == member && !playerHasGuidincePresence) {
-			m_mantraHolder.reset();
 		}
 	}
 
