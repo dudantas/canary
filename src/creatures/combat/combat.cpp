@@ -974,37 +974,41 @@ void Combat::CombatNullFunc(const std::shared_ptr<Creature> &caster, const std::
 }
 
 uint16_t Combat::monkEffectByElementalBond(CombatType_t combatType, uint16_t effect) {
-	if (combatType == COMBAT_NONE || combatType == COMBAT_PHYSICALDAMAGE) {
-		return effect; // No change needed for non-elemental or physical
+	switch (effect) {
+		case CONST_ME_WHIRLWIND_BLOW_WHITE:
+		case CONST_ME_PULSE_WHITE:
+		case CONST_ME_CLAW_WHITE:
+		case CONST_ME_OUTBURST_WHITE:
+			switch (combatType) {
+				case COMBAT_NONE:
+				case COMBAT_PHYSICALDAMAGE:
+					return effect; // WHITE
+				case COMBAT_EARTHDAMAGE:
+					return effect + 1; // GREEN
+				case COMBAT_FIREDAMAGE:
+					return effect + 2; // PINK
+				default:
+					return effect; // fallback: WHITE
+			}
+		case CONST_ME_BLOW_WHITE:
+			switch (combatType) {
+				case COMBAT_NONE:
+				case COMBAT_PHYSICALDAMAGE:
+					return effect; // WHITE
+				case COMBAT_EARTHDAMAGE:
+					return effect + 1; // GREEN
+				case COMBAT_ICEDAMAGE:
+					return effect + 2; // BLUE
+				case COMBAT_FIREDAMAGE:
+					return effect + 3; // PINK
+				default:
+					return effect; // fallback: WHITE
+			}
+		case CONST_ME_WHITE_ENERGY_SPARK:
+			return effect; // Não possui variantes
+		default:
+			return effect;
 	}
-
-	// Replace base white effects with colored variants depending on the element
-	auto colorByElement = [&](uint16_t base, CombatType_t type) -> uint16_t {
-		switch (type) {
-			case COMBAT_EARTHDAMAGE: return base + 1; // GREEN
-			case COMBAT_FIREDAMAGE: return base + 2; // RED
-			case COMBAT_ICEDAMAGE: return base + 3; // BLUE
-			case COMBAT_ENERGYDAMAGE: return base + 4; // YELLOW
-			case COMBAT_DEATHDAMAGE: return base + 5; // PURPLE
-			case COMBAT_HOLYDAMAGE: return base + 6; // WHITE/GOLD
-			default: return base + 7; // PINK (fallback)
-		}
-	};
-	if (effect == CONST_ME_WHIRLWIND_BLOW_WHITE) {
-		effect = colorByElement(CONST_ME_WHIRLWIND_BLOW_WHITE, combatType);
-	} else if (effect == CONST_ME_PULSE_WHITE) {
-		effect = colorByElement(CONST_ME_PULSE_WHITE, combatType);
-	} else if (effect == CONST_ME_CLAW_WHITE) {
-		effect = colorByElement(CONST_ME_CLAW_WHITE, combatType);
-	} else if (effect == CONST_ME_BLOW_WHITE) {
-		effect = colorByElement(CONST_ME_BLOW_WHITE, combatType);
-	} else if (effect == CONST_ME_OUTBURST_WHITE) {
-		effect = colorByElement(CONST_ME_OUTBURST_WHITE, combatType);
-	} else if (effect == CONST_ME_WHITE_ENERGY_SPARK) {
-		effect = colorByElement(CONST_ME_WHITE_ENERGY_SPARK, combatType);
-	}
-
-	return effect;
 }
 
 void Combat::sendCombatEffect(const std::shared_ptr<Creature> &caster, const Position &position, uint16_t effect) {
