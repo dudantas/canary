@@ -2494,7 +2494,7 @@ std::string Item::parseShowAttributesDescription(const std::shared_ptr<Item> &it
 			}
 		}
 
-		const int32_t mantra = (item ? item->getMantra() : itemType.armor);
+		const int32_t mantra = (item ? item->getMantra() : itemType.mantra);
 		if (mantra != 0) {
 			if (begin) {
 				itemDescription << " (Mantra:" << mantra;
