@@ -633,16 +633,18 @@ function Player.getAchievements(self)
 end
 
 function Player.addAllAchievements(self, denyMsg)
-	for achievIdentifier = ACHIEVEMENT_FIRST, ACHIEVEMENT_LAST do
-		self:addAchievement(achievIdentifier, denyMsg)
+	for id in pairs(ACHIEVEMENTS) do
+		if type(id) == "number" then
+			self:addAchievement(id, denyMsg)
+		end
 	end
 	return true
 end
 
 function Player.removeAllAchievements(self)
-	for achievIdentifier = 1, #ACHIEVEMENTS do
-		if self:hasAchievement(achievIdentifier) then
-			self:removeAchievement(achievIdentifier)
+	for id in pairs(ACHIEVEMENTS) do
+		if type(id) == "number" then
+			self:removeAchievement(id)
 		end
 	end
 	return true

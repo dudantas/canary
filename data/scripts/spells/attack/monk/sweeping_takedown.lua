@@ -51,7 +51,8 @@ end
 function onGetFormulaValuesOuter(player, skill, attack, factor)
 	local cached = sweepingTakedownCache[player:getId()]
 	if not cached then
-		return 0, 0 -- fallback seguro
+		logger.debug(string.format("[Sweeping Takedown - Outer] Cache miss for player %s, returning 0 damage", player:getName()))
+		return 0, 0 -- safe fallback
 	end
 
 	local min = cached.min * 0.75

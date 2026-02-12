@@ -76,6 +76,13 @@ local function creatureSayCallback(npc, creature, type, message)
 		return false
 	end
 
+	local player = Player(creature)
+	local isMonk = player and player:getVocation():getBaseId() == VOCATION.BASE_ID.MONK
+
+	if not isMonk then
+		return true
+	end
+
 	if MsgContains(message, "blue valley") then
 		npcHandler:say("This valley has been my home and will be for the foreseeable time.", npc, creature)
 	elseif MsgContains(message, "pilgrimage") then
@@ -88,7 +95,6 @@ end
 
 local function greetCallback(npc, creature)
 	local player = Player(creature)
-	local playerId = player:getId()
 	local isMonk = player:getVocation():getBaseId() == VOCATION.BASE_ID.MONK
 
 	local message = isMonk and "Welcome, monk. This is not your place to be." or "<The metaphysical essence of the Dhar-Enpa does not react.>"

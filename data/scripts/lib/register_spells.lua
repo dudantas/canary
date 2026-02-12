@@ -287,7 +287,7 @@ AREA_SWEEPING_OUTER = {
 	{ 0, 0, 0, 0, 0 },
 }
 
-AREA_GREATER_SWEPPING_TAKDOWN = {
+AREA_GREATER_SWEEPING_TAKEDOWN = {
 	{ 0, 1, 1, 1, 0 },
 	{ 1, 1, 1, 1, 1 },
 	{ 1, 1, 1, 1, 1 },

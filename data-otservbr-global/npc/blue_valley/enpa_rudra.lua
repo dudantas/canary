@@ -335,11 +335,13 @@ keywordHandler:addKeyword({ "seek", "Seek" }, StdModule.say, {
 
 keywordHandler:addKeyword({ "three-fold path", "Three-Fold Path" }, StdModule.say, {
 	npcHandler = npcHandler,
-	text = "All initiates have to undergo the Three-Fold path to understand the way of the Merudri and become true warrior monks. ...",
-	"Many generations of monks have been chosen to travel the world of Tibia incognito to study and learn the ways of the outside world. The pilgrims are not to take part in skirmishes or settle down outside of the valley. ...",
-	"Learning, documenting and training, they eventually find their way back to the valley after years of wandering. Embracing the three elements of harmony, enlightenment and power. ...",
-	"These three elements of totality are to be found among the Merudri shrines which dot Tibian landscapes all over our world. ...",
-	"Enpa-Deia Pema will answer all your questions concerning our sacred pilgrimage.",
+	text = {
+		"All initiates have to undergo the Three-Fold path to understand the way of the Merudri and become true warrior monks. ...",
+		"Many generations of monks have been chosen to travel the world of Tibia incognito to study and learn the ways of the outside world. The pilgrims are not to take part in skirmishes or settle down outside of the valley. ...",
+		"Learning, documenting and training, they eventually find their way back to the valley after years of wandering. Embracing the three elements of harmony, enlightenment and power. ...",
+		"These three elements of totality are to be found among the Merudri shrines which dot Tibian landscapes all over our world. ...",
+		"Enpa-Deia Pema will answer all your questions concerning our sacred pilgrimage.",
+	},
 })
 
 keywordHandler:addKeyword({ "king", "King" }, StdModule.say, {
@@ -378,7 +380,7 @@ keywordHandler:addKeyword({ "enpa-deia", "Enpa-Deia" }, StdModule.say, {
 	},
 })
 
-keywordHandler:addKeyword({ "semi-enpa", "Sempi-Enpa" }, StdModule.say, {
+keywordHandler:addKeyword({ "sempi-enpa", "Sempi-Enpa" }, StdModule.say, {
 	npcHandler = npcHandler,
 	text = {
 		"There comes a time when an Enpa reaches the utmost level of harmony, enlightenment and control. In this completely serene state, he can focus all his energy and wield tremendous power over himself - and others. ...",
@@ -446,7 +448,6 @@ end
 
 local function creatureSayCallback(npc, creature, type, message)
 	local player = Player(creature)
-	local playerId = player:getId()
 
 	if not npcHandler:checkInteraction(npc, creature) then
 		return false
@@ -481,7 +482,6 @@ end
 
 local function greetCallback(npc, creature)
 	local player = Player(creature)
-	local playerId = player:getId()
 	npcHandler:setMessage(MESSAGE_GREET, "I welcome you, monk. Now that you have been brought here, tell me what you seek in this most sacred place. I can also teach you {spells} or {promote} you.")
 	return true
 end
