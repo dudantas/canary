@@ -979,18 +979,29 @@ uint16_t Combat::monkEffectByElementalBond(CombatType_t combatType, uint16_t eff
 	}
 
 	// Replace base white effects with colored variants depending on the element
+	auto colorByElement = [&](uint16_t base, CombatType_t type) -> uint16_t {
+		switch (type) {
+			case COMBAT_EARTHDAMAGE: return base + 1; // GREEN
+			case COMBAT_FIREDAMAGE: return base + 2; // RED
+			case COMBAT_ICEDAMAGE: return base + 3; // BLUE
+			case COMBAT_ENERGYDAMAGE: return base + 4; // YELLOW
+			case COMBAT_DEATHDAMAGE: return base + 5; // PURPLE
+			case COMBAT_HOLYDAMAGE: return base + 6; // WHITE/GOLD
+			default: return base + 7; // PINK (fallback)
+		}
+	};
 	if (effect == CONST_ME_WHIRLWIND_BLOW_WHITE) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_WHIRLWIND_BLOW_GREEN : CONST_ME_WHIRLWIND_BLOW_PINK;
+		effect = colorByElement(CONST_ME_WHIRLWIND_BLOW_WHITE, combatType);
 	} else if (effect == CONST_ME_PULSE_WHITE) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_PULSE_GREEN : CONST_ME_PULSE_PINK;
+		effect = colorByElement(CONST_ME_PULSE_WHITE, combatType);
 	} else if (effect == CONST_ME_CLAW_WHITE) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_CLAW_GREEN : CONST_ME_CLAW_PINK;
+		effect = colorByElement(CONST_ME_CLAW_WHITE, combatType);
 	} else if (effect == CONST_ME_BLOW_WHITE) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_BLOW_GREEN : CONST_ME_BLOW_PINK;
+		effect = colorByElement(CONST_ME_BLOW_WHITE, combatType);
 	} else if (effect == CONST_ME_OUTBURST_WHITE) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_OUTBURST_GREEN : CONST_ME_OUTBURST_PINK;
+		effect = colorByElement(CONST_ME_OUTBURST_WHITE, combatType);
 	} else if (effect == CONST_ME_WHITE_ENERGY_SPARK) {
-		effect = combatType == COMBAT_EARTHDAMAGE ? CONST_ME_GREEN_ENERGY_SPARK : CONST_ME_PINK_ENERGY_SPARK;
+		effect = colorByElement(CONST_ME_WHITE_ENERGY_SPARK, combatType);
 	}
 
 	return effect;

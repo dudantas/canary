@@ -9071,11 +9071,19 @@ ReturnValue Player::addItemBatch(
 	auto collectStackableItems = [&](const std::vector<std::shared_ptr<Container>> &containers) {
 		std::vector<std::shared_ptr<Item>> stackableItemsCache;
 		stackableItemsCache.reserve(128);
+		// Container-held items
 		for (const auto &container : containers) {
 			for (const auto &item : container->getItemList()) {
 				if (item->getID() == itemId && item->isStackable() && item->getItemCount() < item->getStackSize()) {
 					stackableItemsCache.push_back(item);
 				}
+			}
+		}
+		// Inventory slot items
+		for (int slot = CONST_SLOT_FIRST; slot <= CONST_SLOT_LAST; ++slot) {
+			const auto &invItem = getInventoryItem(static_cast<Slots_t>(slot));
+			if (invItem && invItem->getID() == itemId && invItem->isStackable() && invItem->getItemCount() < invItem->getStackSize()) {
+				stackableItemsCache.push_back(invItem);
 			}
 		}
 		return stackableItemsCache;
@@ -9115,6 +9123,9 @@ ReturnValue Player::addItemBatch(
 					existingItem->getID(),
 					existingItem->getItemCount() + toStack
 				);
+			} else {
+				// Inventory slot item: atualiza diretamente
+				existingItem->setItemCount(existingItem->getItemCount() + toStack);
 			}
 
 			state.actuallyAdded += toStack;
@@ -9164,7 +9175,7 @@ ReturnValue Player::addItemBatch(
 
 			Slots_t updateSlot = slotType;
 			const auto &mainBackpack = getInventoryItem(CONST_SLOT_BACKPACK);
-			if (options.backpackId == ITEM_SHOPPING_BAG && !mainBackpack && options.inBackpacks && queryAdd(CONST_SLOT_BACKPACK, newItem, toStack, flags)) {
+			if (options.backpackId == ITEM_SHOPPING_BAG && !mainBackpack && options.inBackpacks && queryAdd(CONST_SLOT_BACKPACK, newItem, toStack, flags) == RETURNVALUE_NOERROR) {
 				addThing(CONST_SLOT_BACKPACK, newItem);
 				updateSlot = CONST_SLOT_BACKPACK;
 			} else {
@@ -12131,11 +12142,6 @@ bool Player::isFirstOnStack() const {
 		return false;
 	}
 
-	if (hasCondition(CONDITION_SPELLCOOLDOWN)) {
-		g_logger().warn("[isFirstOnStack] cooldown error for player: {}", getName());
-		return false;
-	}
-
 	return this == bottomPlayer.get();
 }
 
@@ -12343,21 +12349,22 @@ void Player::sendSpellCooldowns() {
 			continue;
 		}
 
-		uint16_t spellId = subId > maxu16 ? 0u : static_cast<uint16_t>(subId);
-		const auto &spell = g_spells().getInstantSpellById(spellId);
-		if (!spell) {
-			continue;
-		}
-
 		const uint32_t ticks = std::max<int32_t>(0, condItem->getTicks());
 		if (ticks == 0) {
 			continue;
 		}
 
 		if (type == CONDITION_SPELLGROUPCOOLDOWN) {
-			sendSpellGroupCooldown(static_cast<SpellGroup_t>(spellId), ticks);
-		} else {
-			sendSpellCooldown(spellId, ticks);
+			SpellGroup_t spellGroupId = static_cast<SpellGroup_t>(subId > maxu16 ? 0u : static_cast<uint16_t>(subId));
+			sendSpellGroupCooldown(spellGroupId, ticks);
+			continue;
 		}
+
+		uint16_t spellId = subId > maxu16 ? 0u : static_cast<uint16_t>(subId);
+		const auto &spell = g_spells().getInstantSpellById(spellId);
+		if (!spell) {
+			continue;
+		}
+		sendSpellCooldown(spellId, ticks);
 	}
 }

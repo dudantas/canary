@@ -237,7 +237,7 @@ struct PlayerWheelMethodsBonusData {
 		int fist = 0;
 	};
 
-	// value * 100. Example: 1% == 100
+	// Raw percentage value. Example: 1% == 1.0
 	struct Leech {
 		double manaLeech = 0;
 		double lifeLeech = 0;

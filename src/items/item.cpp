@@ -318,7 +318,7 @@ namespace {
 		int16_t show = itemType.abilities->absorbPercent[0];
 		if (show != 0) {
 			for (size_t i = 1; i < COMBAT_COUNT; ++i) {
-				if (itemType.abilities->fieldAbsorbPercent[i] != show) {
+				if (itemType.abilities->absorbPercent[i] != show) {
 					show = 0;
 					break;
 				}
