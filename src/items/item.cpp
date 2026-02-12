@@ -61,7 +61,7 @@ namespace {
 		ss.str("");
 		bool skillBoost = false;
 		if (it.abilities->speed) {
-			ss << std::showpos << "speed " << it.abilities->speed << std::noshowpos;
+			ss << std::showpos << "speed " << (it.abilities->speed >> 1) << std::noshowpos;
 			skillBoost = true;
 		}
 
@@ -318,7 +318,7 @@ namespace {
 		int16_t show = itemType.abilities->absorbPercent[0];
 		if (show != 0) {
 			for (size_t i = 1; i < COMBAT_COUNT; ++i) {
-				if (itemType.abilities->absorbPercent[i] != show) {
+				if (itemType.abilities->fieldAbsorbPercent[i] != show) {
 					show = 0;
 					break;
 				}

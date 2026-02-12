@@ -10274,12 +10274,21 @@ void Player::clearCooldowns(bool spenders /* = false */, bool builders /* = fals
 		auto spellId = checkSpellId > maxu16 ? 0u : static_cast<uint16_t>(checkSpellId);
 		const auto &spell = g_spells().getInstantSpellById(spellId);
 		if (!spell) {
-			++it;
-			g_logger().error("{} - Player {} has a cooldown for an invalid spellId {}.", __FUNCTION__, getName(), spellId);
-			continue;
+			if (type == CONDITION_SPELLCOOLDOWN) {
+				++it;
+				g_logger().error("{} - Player {} has a cooldown for an invalid spellId {}.", __FUNCTION__, getName(), spellId);
+				continue;
+			} else if (type == CONDITION_SPELLGROUPCOOLDOWN) {
+				// Allow clearing group even without spell
+				condItem->setTicks(ticks > 0 ? std::max(0, condItem->getTicks() - ticks) : 0);
+				uint32_t updatedTicks = std::max<uint32_t>(0, condItem->getTicks());
+				sendSpellGroupCooldown(static_cast<SpellGroup_t>(spellId), updatedTicks);
+				++it;
+				continue;
+			}
 		}
 		if (type == CONDITION_SPELLCOOLDOWN || type == CONDITION_SPELLGROUPCOOLDOWN) {
-			if ((spenders && spell->isSpender()) || (builders && spell->isBuilder()) || (!spenders && !builders)) {
+			if ((spenders && spell && spell->isSpender()) || (builders && spell && spell->isBuilder()) || (!spenders && !builders)) {
 				condItem->setTicks(ticks > 0 ? std::max(0, condItem->getTicks() - ticks) : 0);
 				uint32_t updatedTicks = std::max<uint32_t>(0, condItem->getTicks());
 				type == CONDITION_SPELLGROUPCOOLDOWN ? sendSpellGroupCooldown(static_cast<SpellGroup_t>(spellId), updatedTicks) : sendSpellCooldown(spellId, updatedTicks);

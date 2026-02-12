@@ -226,8 +226,8 @@ struct PlayerWheelMethodsBonusData {
 		int damage = 0;
 		int healing = 0;
 	};
-	// value * 100. Example: 1% == 100
-	std::array<uint8_t, 4> unlockedVesselResonances = {};
+	// value * 100. Example: 1% == 100; agora uint16_t (0..10000 para 0..100%)
+	std::array<uint16_t, 4> unlockedVesselResonances = {};
 
 	// Raw value. Example: 1 == 1
 	struct Skills {

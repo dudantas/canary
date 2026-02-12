@@ -55,13 +55,20 @@ CombatDamage Combat::getCombatDamage(const std::shared_ptr<Creature> &creature, 
 	damage.primary.type = params.combatType;
 
 	// If the caster is a player and their vocation is "Monk" (CipSoft style),
-	// and the spell being cast is not a healing spell,
-	// we attempt to apply the elemental bond of the equipped weapon to the damage type.
-	// Otherwise, we fallback to the default combat type from the spell parameters.
+	// and the spell isn't a healing spell, try applying the elementalBond from the equipped weapon if it exists and is valid.
 	const auto &casterPlayer = creature ? creature->getPlayer() : nullptr;
 	if (casterPlayer && casterPlayer->getPlayerVocationEnum() == VOCATION_MONK_CIP && !instantSpellName.empty() && params.combatType != COMBAT_HEALING) {
 		const auto &weapon = casterPlayer->getWeapon(true);
-		damage.primary.type = weapon ? Item::items[weapon->getID()].elementalBond : params.combatType;
+		if (weapon) {
+			CombatType_t bond = Item::items[weapon->getID()].elementalBond;
+			if (bond != COMBAT_NONE) {
+				damage.primary.type = bond;
+			} else {
+				damage.primary.type = params.combatType;
+			}
+		} else {
+			damage.primary.type = params.combatType;
+		}
 	}
 
 	damage.instantSpellName = instantSpellName;
@@ -664,7 +671,7 @@ void Combat::harmonyHeal(const std::shared_ptr<Player> &casterPlayer, const std:
 	damage.primary.value = normal_random(damageAndHealingMin, damageAndHealingMax);
 
 	// Apply healing to the target
-	Combat::doCombatHealth(nullptr, targetPlayer, damage, combatParams);
+	Combat::doCombatHealth(casterPlayer, targetPlayer, damage, combatParams);
 }
 
 void Combat::CombatHealthFunc(const std::shared_ptr<Creature> &caster, const std::shared_ptr<Creature> &target, const CombatParams &params, CombatDamage* data) {
@@ -737,8 +744,9 @@ void Combat::CombatHealthFunc(const std::shared_ptr<Creature> &caster, const std
 			const auto monkMeeleBonus = attackerPlayer->kv()->get("monk-basic-atk-bonus");
 			if (monkMeeleBonus.has_value()) {
 				bool isSerene = attackerPlayer->hasCondition(CONDITION_SERENE);
-				int32_t bonus = 1 + (isSerene ? 0.10 : 0.05) * monkMeeleBonus.value().getNumber();
-				damage.primary.value *= bonus;
+				double bonusMultiplier = 1.0 + (isSerene ? 0.10 : 0.05) * monkMeeleBonus.value().getNumber();
+				double newValue = static_cast<double>(damage.primary.value) * bonusMultiplier;
+				damage.primary.value = static_cast<int32_t>(std::round(newValue));
 			}
 		}
 

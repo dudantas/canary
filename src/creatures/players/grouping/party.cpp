@@ -294,7 +294,7 @@ void Party::applyGuidingPresence(const std::vector<std::shared_ptr<Player>> &mem
 		member->resetBuff(BUFF_MANTRA);
 
 		if (sharedMantra > 0) {
-			member->setBuff(BUFF_MANTRA, sharedMantra);
+			member->setBuff(BUFF_MANTRA, 100 + sharedMantra);
 		}
 
 		const int32_t current = member->getBuff(BUFF_MANTRA);
