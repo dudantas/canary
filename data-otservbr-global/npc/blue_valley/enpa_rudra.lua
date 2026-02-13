@@ -23,13 +23,6 @@ npcConfig.flags = {
 	floorchange = false,
 }
 
-npcConfig.voices = {
-	interval = 15000,
-	chance = 0,
-	{
-		text = "",
-	},
-}
 
 local keywordHandler = KeywordHandler:new()
 local npcHandler = NpcHandler:new(keywordHandler)
@@ -383,11 +376,11 @@ keywordHandler:addKeyword({ "enpa-deia", "Enpa-Deia" }, StdModule.say, {
 keywordHandler:addKeyword({ "sempi-enpa", "Sempi-Enpa" }, StdModule.say, {
 	npcHandler = npcHandler,
 	text = {
-		"There comes a time when an Enpa reaches the utmost level of harmony, enlightenment and control. In this completely serene state, he can focus all his energy and wield tremendous power over himself - and others. ...",
-		"It is possible for an Enpa to move on to a higher state and leave the physical body to become Dhar-Enpa. After this, most of the mind of an Enpa is focused on control and containment. ...",
-		"Once a Dhar-Enpa decides to essentially become one with our world itself, he becomes Sempi-Enpa, eternal and powerful beyond imagination. ...",
-		"Dhar-Enpa Gaan decided to leave his metaphysical state and become Sempi-Enpa to close the reality rift and seal the Yng from ever trespassing the valley again. He closed the rift but was not able to contain and control his power. ...",
-		"Lost in a dimensional pocket that formed during the closing of the rift, he is lost to the Merudri and a potential threat to everything in this realm. It is for this reason, that only one other Enpa has decided to become Dhar-Enpa ever since.",
+		"Sempi-Enpa is the highest state of existence a Dhar-Enpa can achieve - transcending the metaphysical form to become one with the world itself. Eternal, omnipresent, and wielding power beyond mortal comprehension. ...",
+		"A Sempi-Enpa exists everywhere and nowhere, their consciousness merged with the very fabric of reality. They can shape the world, seal dimensional rifts, and protect entire realms from otherworldly threats. ...",
+		"However, this transcendence comes at a terrible cost. The Sempi-Enpa loses all connection to their former self, their humanity consumed by the vastness of their new existence. ...",
+		"Dhar-Enpa Gaan achieved this state to seal the reality rift and banish the Yng forever. But the power overwhelmed him - he lost control and became trapped in a dimensional pocket of his own creation. ...",
+		"Now he exists as a mad god, neither fully in our world nor completely beyond it. A cautionary tale of ultimate power and ultimate sacrifice. This is why no Dhar-Enpa has dared attempt transcendence since.",
 	},
 })
 
@@ -399,11 +392,11 @@ keywordHandler:addKeyword({ "yng", "Yng" }, StdModule.say, {
 keywordHandler:addKeyword({ "dhar-enpa", "Dhar-Enpa" }, StdModule.say, {
 	npcHandler = npcHandler,
 	text = {
-		"There comes a time when an Enpa reaches the utmost level of harmony, enlightenment and control. In this completely serene state, he can focus all his energy and wield tremendous power over himself - and others. ...",
-		"It is possible for an Enpa to move on to a higher state and leave the physical body to become Dhar-Enpa. After this, most of the mind of an Enpa is focused on control and containment. ...",
-		"Once a Dhar-Enpa decides to essentially become one with our world itself, he becomes Sempi-Enpa, eternal and powerful beyond imagination. ...",
-		"Dhar-Enpa Gaan decided to leave his metaphysical state and become Sempi-Enpa to close the reality rift and seal the Yng from ever trespassing the valley again. He closed the rift but was not able to contain and control his power. ...",
-		"Lost in a dimensional pocket that formed during the closing of the rift, he is lost to the Merudri and a potential threat to everything in this realm. It is for this reason, that only one other Enpa has decided to become Dhar-Enpa ever since.",
+		"When an Enpa reaches perfect harmony, enlightenment and control, they may choose to transcend their physical form and become Dhar-Enpa - a metaphysical being of pure consciousness and will. ...",
+		"In this state, the Dhar-Enpa exists between worlds, no longer bound by flesh but not yet merged with reality itself. Their entire focus shifts to control and containment of their immense power. ...",
+		"A Dhar-Enpa can influence the physical world through sheer force of will, but they must constantly maintain perfect balance. One moment of lost control could have catastrophic consequences. ...",
+		"Dhar-Enpa Gaan was the first to achieve this state. He used his metaphysical power to help seal the reality rift and protect the valley from the Yng. But he knew containment alone would not be enough. ...",
+		"That is why he made the ultimate choice - to transcend even further and become Sempi-Enpa, risking everything to permanently seal the rift. Since his tragic fate, only one other Enpa has dared become Dhar-Enpa.",
 	},
 })
 
